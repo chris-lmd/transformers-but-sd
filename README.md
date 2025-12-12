@@ -16,10 +16,10 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 
 | Session | Thème | Durée | Notebook |
 |---------|-------|-------|----------|
-| 1 | Mécanisme d'Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/USERNAME/transformers-but-sd/blob/main/Session-01-Attention/TP-01-Attention.ipynb) |
-| 2 | Multi-Head Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/USERNAME/transformers-but-sd/blob/main/Session-02-MultiHead/TP-02-MultiHead.ipynb) |
-| 3 | Architecture Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/USERNAME/transformers-but-sd/blob/main/Session-03-Transformer/TP-03-Transformer.ipynb) |
-| 4 | Classification de Texte | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/USERNAME/transformers-but-sd/blob/main/Session-04-Classification/TP-04-Classification.ipynb) |
+| 1 | Mécanisme d'Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-01-Attention/TP-01-Attention.ipynb) |
+| 2 | Multi-Head Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-02-MultiHead/TP-02-MultiHead.ipynb) |
+| 3 | Architecture Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03-Transformer/TP-03-Transformer.ipynb) |
+| 4 | Classification de Texte | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-04-Classification/TP-04-Classification.ipynb) |
 | 5 | Projet Final | 2h | Voir ci-dessous |
 
 ## Projet Final (Session 5)
@@ -28,8 +28,8 @@ Choisissez l'un des deux projets :
 
 | Projet | Description | Notebook |
 |--------|-------------|----------|
-| **A - Fake News** | Détecteur de fake news FR/EN avec pipeline de traduction | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/USERNAME/transformers-but-sd/blob/main/Session-05-Projet/Projet-A-FakeNews.ipynb) |
-| **B - CLIP** | Recherche d'images par texte (multimodal) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/USERNAME/transformers-but-sd/blob/main/Session-05-Projet/Projet-B-CLIP.ipynb) |
+| **A - Fake News** | Détecteur de fake news FR/EN avec pipeline de traduction | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-05-Projet/Projet-A-FakeNews.ipynb) |
+| **B - CLIP** | Recherche d'images par texte (multimodal) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-05-Projet/Projet-B-CLIP.ipynb) |
 
 ## Installation (si usage local)
 
