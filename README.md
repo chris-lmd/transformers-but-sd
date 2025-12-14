@@ -10,7 +10,7 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 
 - Python (niveau intermédiaire)
 - Réseaux de neurones multicouches (MLP)
-- CNN avec Keras/TensorFlow (notions)
+- Notions de CNN (convolutions, pooling)
 
 ## Sessions
 
@@ -21,6 +21,7 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 | 3 | Architecture Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03-Transformer/TP-03-Transformer.ipynb) |
 | 4 | Classification de Texte | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-04-Classification/TP-04-Classification.ipynb) |
 | 5 | Projet Final | 2h | Voir ci-dessous |
+| 6 | **Session Optionnelle** | 2h | Voir ci-dessous |
 
 ## Projet Final (Session 5)
 
@@ -30,6 +31,15 @@ Choisissez l'un des deux projets :
 |--------|-------------|----------|
 | **A - Fake News** | Détecteur de fake news FR/EN avec pipeline de traduction | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-05-Projet/Projet-A-FakeNews.ipynb) |
 | **B - CLIP** | Recherche d'images par texte (multimodal) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-05-Projet/Projet-B-CLIP.ipynb) |
+
+## Session Optionnelle (Session 6)
+
+Pour aller plus loin, choisissez l'un des deux projets avancés :
+
+| Projet | Description | Notebook |
+|--------|-------------|----------|
+| **C - Mini-GPT** | Construire et entraîner un modèle génératif type GPT | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06-Optionnel/Projet-C-MiniGPT.ipynb) |
+| **D - RAG** | Question-Answering avec Retrieval-Augmented Generation | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06-Optionnel/Projet-D-RAG.ipynb) |
 
 ## Installation (si usage local)
 
@@ -59,6 +69,9 @@ transformers-but-sd/
 ├── Session-05-Projet/
 │   ├── Projet-A-FakeNews.ipynb
 │   └── Projet-B-CLIP.ipynb
+├── Session-06-Optionnel/
+│   ├── Projet-C-MiniGPT.ipynb
+│   └── Projet-D-RAG.ipynb
 ├── utils/
 │   └── helpers.py
 └── data/
