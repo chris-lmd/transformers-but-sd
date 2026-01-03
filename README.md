@@ -12,39 +12,44 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 - Réseaux de neurones multicouches (MLP)
 - Notions de CNN (convolutions, pooling)
 
-## Sessions
+## Programme V2
 
-| Session | Thème | Durée | Notebook |
-|---------|-------|-------|----------|
-| 1 | Mécanisme d'Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-01-Attention/TP-01-Attention.ipynb) |
-| 2 | Multi-Head Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-02-MultiHead/TP-02-MultiHead.ipynb) |
-| 3 | Architecture Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03-Transformer/TP-03-Transformer.ipynb) |
-| 4 | Classification de Texte | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-04-Classification/TP-04-Classification.ipynb) |
-| 5 | Projet Final | 2h | Voir ci-dessous |
-| 6 | **Session Optionnelle** | 2h | Voir ci-dessous |
+### Travaux Pratiques (8h)
 
-## Projet Final (Session 5)
+| TP | Thème | Durée | Notebook |
+|----|-------|-------|----------|
+| 1 | Fondamentaux NLP | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-01-NLP-Fondamentaux/TP-01-NLP-Fondamentaux.ipynb) |
+| 2 | Mécanisme d'Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-02-Attention/TP-02-Attention.ipynb) |
+| 3 | Multi-Head Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03-MultiHead/TP-03-MultiHead.ipynb) |
+| 4 | Architecture Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-04-Transformer/TP-04-Transformer.ipynb) |
 
-Choisissez l'un des deux projets :
+### Projets (4h)
 
-| Projet | Description | Notebook |
-|--------|-------------|----------|
-| **A - Fake News** | Détecteur de fake news FR/EN avec pipeline de traduction | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-05-Projet/Projet-A-FakeNews.ipynb) |
-| **B - CLIP** | Recherche d'images par texte (multimodal) | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-05-Projet/Projet-B-CLIP.ipynb) |
+| Projet | Description | Durée | Notebook |
+|--------|-------------|-------|----------|
+| **Fake News** | Détecteur de fake news : From scratch + Fine-tuning DistilBERT | 4h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Projet-FakeNews/TP-Projet-FakeNews.ipynb) |
+| **Mini-GPT** | Génération de noms Fantasy avec décodeur + GPT-2 | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Projet-MiniGPT/TP-Projet-MiniGPT.ipynb) |
 
-## Session Optionnelle (Session 6)
+## Progression pédagogique
 
-Pour aller plus loin, choisissez l'un des deux projets avancés :
-
-| Projet | Description | Notebook |
-|--------|-------------|----------|
-| **C - Mini-GPT** | Construire et entraîner un modèle génératif type GPT | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06-Optionnel/Projet-C-MiniGPT.ipynb) |
-| **D - RAG** | Question-Answering avec Retrieval-Augmented Generation | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06-Optionnel/Projet-D-RAG.ipynb) |
+```
+TP1: Tokenization → Embeddings → Word2Vec
+           ↓
+TP2: RNN/LSTM → Attention Q/K/V → Scaled Dot-Product
+           ↓
+TP3: split_heads → Multi-Head → concat_heads
+           ↓
+TP4: Positional Encoding → FFN → Residuals → LayerNorm
+           ↓
+Projet Fake News: Classification From Scratch + Fine-tuning
+           ↓
+Projet Mini-GPT: Décodeur + Masque causal + Génération
+```
 
 ## Installation (si usage local)
 
 ```bash
-pip install torch torchvision transformers datasets matplotlib numpy
+pip install torch torchvision transformers datasets matplotlib numpy gensim scikit-learn tqdm
 ```
 
 ## Utilisation avec Google Colab (Recommandé)
@@ -58,22 +63,19 @@ pip install torch torchvision transformers datasets matplotlib numpy
 
 ```
 transformers-but-sd/
-├── Session-01-Attention/
-│   └── TP-01-Attention.ipynb
-├── Session-02-MultiHead/
-│   └── TP-02-MultiHead.ipynb
-├── Session-03-Transformer/
-│   └── TP-03-Transformer.ipynb
-├── Session-04-Classification/
-│   └── TP-04-Classification.ipynb
-├── Session-05-Projet/
-│   ├── Projet-A-FakeNews.ipynb
-│   └── Projet-B-CLIP.ipynb
-├── Session-06-Optionnel/
-│   ├── Projet-C-MiniGPT.ipynb
-│   └── Projet-D-RAG.ipynb
+├── Session-01-NLP-Fondamentaux/
+│   └── TP-01-NLP-Fondamentaux.ipynb
+├── Session-02-Attention/
+│   └── TP-02-Attention.ipynb
+├── Session-03-MultiHead/
+│   └── TP-03-MultiHead.ipynb
+├── Session-04-Transformer/
+│   └── TP-04-Transformer.ipynb
+├── Projet-FakeNews/
+│   └── TP-Projet-FakeNews.ipynb
+├── Projet-MiniGPT/
+│   └── TP-Projet-MiniGPT.ipynb
 ├── utils/
-│   └── helpers.py
 └── data/
 ```
 
