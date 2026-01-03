@@ -16,12 +16,12 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 
 ### Travaux Pratiques (8h)
 
-| TP | Thème | Durée | Notebook |
-|----|-------|-------|----------|
-| 1 | Fondamentaux NLP | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-01-NLP-Fondamentaux/TP-01-NLP-Fondamentaux.ipynb) |
-| 2 | Mécanisme d'Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-02-Attention/TP-02-Attention.ipynb) |
-| 3 | Multi-Head Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03-MultiHead/TP-03-MultiHead.ipynb) |
-| 4 | Architecture Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-04-Transformer/TP-04-Transformer.ipynb) |
+| TP | Thème | Durée | Notebook                                                                                                                                                                                                                      |
+|----|-------|-------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1 | Fondamentaux NLP | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/v2-refonte/Session-01-NLP-Fondamentaux/TP-01-NLP-Fondamentaux.ipynb) |
+| 2 | Mécanisme d'Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-02-Attention/TP-02-Attention.ipynb)                     |
+| 3 | Multi-Head Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03-MultiHead/TP-03-MultiHead.ipynb)                     |
+| 4 | Architecture Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-04-Transformer/TP-04-Transformer.ipynb)                 |
 
 ### Projets (4h)
 
