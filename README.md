@@ -9,8 +9,6 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 ## Prérequis
 
 - Python (niveau intermédiaire)
-- Réseaux de neurones multicouches (MLP)
-- Notions de CNN (convolutions, pooling)
 
 ## Programme V2
 
