@@ -25,7 +25,7 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 
 | Projet | Description | Durée | Notebook |
 |--------|-------------|-------|----------|
-| **Fake News** | Détecteur de fake news : From scratch + Fine-tuning DistilBERT | 4h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Projet-FakeNews/TP-Projet-FakeNews.ipynb) |
+| **Fake News** | Détecteur de fake news : From scratch + Fine-tuning DistilBERT | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Projet-FakeNews/TP-Projet-FakeNews.ipynb) |
 | **Mini-GPT** | Génération de noms Fantasy avec décodeur + GPT-2 | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Projet-MiniGPT/TP-Projet-MiniGPT.ipynb) |
 
 ## Progression pédagogique
