@@ -84,6 +84,8 @@ transformers-but-sd/
 - [The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer/)
 - [HuggingFace Documentation](https://huggingface.co/docs)
 
-## Auteur
-
+## Auteurs
+- [chris-lmd](https://github.com/chris-lmd)
+- [ClementRx79](https://github.com/ClementRx79)
+  
 Module conçu pour le BUT Science des Données - IUT
