@@ -10,7 +10,7 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 
 - Python (niveau intermédiaire)
 
-## Programme V2
+## Programme
 
 ### Travaux Pratiques (8h)
 
