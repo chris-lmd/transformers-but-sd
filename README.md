@@ -12,36 +12,38 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 
 ## Programme
 
-### Travaux Pratiques (8h)
+### Travaux Pratiques (12h)
 
-| TP | Thème | Durée | Notebook                                                                                                                                                                                                                |
-|----|-------|-------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1 | Fondamentaux NLP | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-01-NLP-Fondamentaux/TP-01-NLP-Fondamentaux.ipynb) |
-| 2 | Mécanisme d'Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-02-Attention/TP-02-Attention.ipynb)               |
-| 3 | Multi-Head Attention | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03-MultiHead/TP-03-MultiHead.ipynb)               |
-| 4 | Architecture Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-04-Transformer/TP-04-Transformer.ipynb)           |
+| Session | Thème | Durée | Notebooks |
+|---------|-------|-------|-----------|
+| 1 | Fondamentaux NLP | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-01/TP-01-NLP-Fondamentaux.ipynb) |
+| 2 | Positional Encoding & Bases Attention | 2h | [![TP](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-02/TP-02-PE_et_Bases_Attention.ipynb) [![Note](https://img.shields.io/badge/Note-PE-blue)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-02/Note-Positional-Encoding.ipynb) |
+| 3 | Maîtriser l'Attention | 2h | [![TP](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03/TP-03-Attention.ipynb) [![Note](https://img.shields.io/badge/Note-Attention-blue)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03/Note-Attention.ipynb) |
+| 4 | Multi-Head & Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-04/TP-04-MultiHead-Transformer.ipynb) |
+| 5 | Mini-GPT : Génération de noms | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-05/TP-05-MiniGPT-Noms.ipynb) |
+| 6 | Mini-GPT : Fine-Tuning | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06/TP-06-MiniGPT-FineTuning.ipynb) |
 
-### Projets (4h)
+### Projets
 
-| Projet | Description | Durée | Notebook |
-|--------|-------------|-------|----------|
-| **Fake News** | Détecteur de fake news : From scratch + Fine-tuning DistilBERT | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Projet-FakeNews/TP-Projet-FakeNews.ipynb) |
-| **Mini-GPT** | Génération de noms Fantasy avec décodeur + GPT-2 | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Projet-MiniGPT/TP-Projet-MiniGPT.ipynb) |
+| Projet | Description | Notebook |
+|--------|-------------|----------|
+| **Fake News** | Détecteur de fake news : From scratch + Fine-tuning DistilBERT | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Projet-FakeNews/TP-Projet-FakeNews.ipynb) |
+| **Mini-GPT** | Génération de noms Fantasy avec décodeur + GPT-2 | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Projet-MiniGPT/TP-Projet-MiniGPT.ipynb) |
 
 ## Progression pédagogique
 
 ```
-TP1: Tokenization → Embeddings → Word2Vec
-           ↓
-TP2: RNN/LSTM → Attention Q/K/V → Scaled Dot-Product
-           ↓
-TP3: split_heads → Multi-Head → concat_heads
-           ↓
-TP4: Positional Encoding → FFN → Residuals → LayerNorm
-           ↓
-Projet Fake News: Classification From Scratch + Fine-tuning
-           ↓
-Projet Mini-GPT: Décodeur + Masque causal + Génération
+Session 1: Tokenization → Embeddings → Word2Vec
+              ↓
+Session 2: Positional Encoding → Similarité → Q/K/V
+              ↓
+Session 3: scaled_dot_product_attention → SelfAttention → split_heads
+              ↓
+Session 4: concat_heads → MultiHeadAttention → FFN → Masque causal
+              ↓
+Session 5: TransformerBlock → Mini-GPT → Génération de noms Pokémon
+              ↓
+Session 6: Fine-tuning GPT-2 → Génération avancée
 ```
 
 ## Installation (si usage local)
@@ -61,20 +63,24 @@ pip install torch torchvision transformers datasets matplotlib numpy gensim scik
 
 ```
 transformers-but-sd/
-├── Session-01-NLP-Fondamentaux/
+├── Session-01/
 │   └── TP-01-NLP-Fondamentaux.ipynb
-├── Session-02-Attention/
-│   └── TP-02-Attention.ipynb
-├── Session-03-MultiHead/
-│   └── TP-03-MultiHead.ipynb
-├── Session-04-Transformer/
-│   └── TP-04-Transformer.ipynb
+├── Session-02/
+│   ├── TP-02-PE_et_Bases_Attention.ipynb
+│   └── Note-Positional-Encoding.ipynb
+├── Session-03/
+│   ├── TP-03-Attention.ipynb
+│   └── Note-Attention.ipynb
+├── Session-04/
+│   └── TP-04-MultiHead-Transformer.ipynb
+├── Session-05/
+│   └── TP-05-MiniGPT-Noms.ipynb
+├── Session-06/
+│   └── TP-06-MiniGPT-FineTuning.ipynb
 ├── Projet-FakeNews/
 │   └── TP-Projet-FakeNews.ipynb
-├── Projet-MiniGPT/
-│   └── TP-Projet-MiniGPT.ipynb
-├── utils/
-└── data/
+└── Projet-MiniGPT/
+    └── TP-Projet-MiniGPT.ipynb
 ```
 
 ## Ressources
@@ -87,5 +93,5 @@ transformers-but-sd/
 ## Auteurs
 - [chris-lmd](https://github.com/chris-lmd)
 - [ClementRx79](https://github.com/ClementRx79)
-  
+
 Module conçu pour le BUT Science des Données - IUT
