@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture GPT - Structure & Calcul</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 15px;
+            color: #fff;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+            color: #ffa726;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .config-display {
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .config-display code {
+            color: #ffa726;
+            background: rgba(255, 152, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1100px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Left Panel - Architecture */
+        .arch-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .arch-panel h2 {
+            color: #ffa726;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .arch-block {
+            width: 220px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .arch-block:hover {
+            transform: scale(1.03);
+            z-index: 10;
+        }
+
+        .arch-block.active {
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .output-block {
+            background: linear-gradient(135deg, #e91e63, #c2185b);
+            border: 2px solid #e91e63;
+        }
+
+        .lm-head {
+            background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+            border: 2px solid #9c27b0;
+        }
+
+        .layer-norm {
+            background: linear-gradient(135deg, #607d8b, #455a64);
+            border: 2px solid #607d8b;
+            width: 180px;
+        }
+
+        .decoder-stack {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border: 2px solid #ff9800;
+            width: auto;
+            padding: 12px;
+        }
+
+        .decoder-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .decoder-arrow {
+            color: #ffb74d;
+            font-size: 18px;
+        }
+
+        .decoder-ellipsis {
+            color: #ffb74d;
+            font-size: 12px;
+            text-align: center;
+            padding: 0 5px;
+        }
+
+        .decoder-block {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid #ffb74d;
+            border-radius: 8px;
+            padding: 6px;
+        }
+
+        .decoder-block-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #ffb74d;
+            font-size: 11px;
+        }
+
+        .sub-block {
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            padding: 5px;
+            margin: 3px 0;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .sub-block:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.02);
+        }
+
+        .sub-block.active {
+            background: rgba(255,255,255,0.3);
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            transform: scale(1.03);
+        }
+
+        .sub-block.attention { border-left: 3px solid #4fc3f7; }
+        .sub-block.attention.active { box-shadow: 0 0 12px #4fc3f7; }
+        .sub-block.ffn { border-left: 3px solid #66bb6a; }
+        .sub-block.ffn.active { box-shadow: 0 0 12px #66bb6a; }
+        .sub-block.norm { border-left: 3px solid #607d8b; }
+        .sub-block.norm.active { box-shadow: 0 0 12px #607d8b; }
+
+        .sub-block .dimensions {
+            font-size: 9px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .embedding-block {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            border: 2px solid #2196f3;
+        }
+
+        .pos-encoding {
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            border: 2px solid #00bcd4;
+        }
+
+        .input-block {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            border: 2px solid #4caf50;
+        }
+
+        .arrow {
+            width: 2px;
+            height: 15px;
+            background: #666;
+            position: relative;
+        }
+
+        .arrow::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -4px;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 6px solid #666;
+        }
+
+        .plus-circle {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        .dim-label {
+            font-size: 9px;
+            color: #666;
+            text-align: center;
+            padding: 2px 6px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+        }
+
+        .dimensions {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 3px;
+        }
+
+        /* Right Panel - Calculations */
+        .calc-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .calc-title {
+            color: #ffa726;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .calc-title .formula {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            color: #4fc3f7;
+            font-size: 14px;
+        }
+
+        .calc-description {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .calc-description strong { color: #fff; }
+
+        .matrix-section {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .matrix-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .matrix-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .matrix-label .dims {
+            color: #666;
+            font-size: 10px;
+        }
+
+        .matrix {
+            display: grid;
+            gap: 2px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px;
+            border-radius: 6px;
+            border: 2px solid #333;
+        }
+
+        .matrix.input { border-color: #4caf50; }
+        .matrix.result { border-color: #ff9800; }
+        .matrix.mask { border-color: #e91e63; }
+
+        .matrix-cell {
+            width: 38px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-family: monospace;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+        }
+
+        .matrix-cell.negative { color: #ef5350; }
+        .matrix-cell.positive { color: #66bb6a; }
+        .matrix-cell.zero { color: #888; }
+        .matrix-cell.masked { background: rgba(239, 83, 80, 0.3); color: #ef5350; }
+
+        .operator {
+            font-size: 18px;
+            color: #666;
+            padding: 0 3px;
+        }
+
+        .matrix-with-labels {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .row-labels {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .row-label {
+            height: 22px;
+            display: flex;
+            align-items: center;
+            font-size: 9px;
+            color: #666;
+        }
+
+        .property-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(102, 187, 106, 0.2);
+            border: 1px solid #66bb6a;
+            border-radius: 15px;
+            font-size: 10px;
+            color: #66bb6a;
+            margin: 3px 3px 3px 0;
+        }
+
+        .property-badge.warning {
+            background: rgba(255, 152, 0, 0.2);
+            border-color: #ffa726;
+            color: #ffa726;
+        }
+
+        .property-badge.info {
+            background: rgba(79, 195, 247, 0.2);
+            border-color: #4fc3f7;
+            color: #4fc3f7;
+        }
+
+        .property-badge.pink {
+            background: rgba(233, 30, 99, 0.2);
+            border-color: #e91e63;
+            color: #e91e63;
+        }
+
+        .properties { margin: 8px 0; }
+
+        .info-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 12px 0;
+            border-left: 3px solid #ffa726;
+        }
+
+        .info-box.success { border-left-color: #66bb6a; }
+        .info-box.warning { border-left-color: #e91e63; }
+        .info-box.info { border-left-color: #4fc3f7; }
+
+        .info-box h4 {
+            color: #ffa726;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .info-box.success h4 { color: #66bb6a; }
+        .info-box.warning h4 { color: #e91e63; }
+        .info-box.info h4 { color: #4fc3f7; }
+
+        .info-box p, .info-box li {
+            color: #aaa;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .info-box ul { margin-left: 15px; }
+
+        .info-box code {
+            background: rgba(255,255,255,0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: #4fc3f7;
+            font-family: monospace;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border: 2px solid #ffa726;
+            background: transparent;
+            color: #ffa726;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        .nav-btn:hover:not(:disabled) { background: rgba(255, 152, 0, 0.2); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .step-counter {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+
+        .step-counter .num {
+            color: #ffa726;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Generation Demo */
+        .generation-demo {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .generation-demo h4 {
+            color: #e91e63;
+            margin-bottom: 10px;
+        }
+
+        .token-sequence {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+            min-height: 40px;
+        }
+
+        .token {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .token.input {
+            background: rgba(76, 175, 80, 0.3);
+            border: 2px solid #4caf50;
+        }
+
+        .token.generated {
+            background: rgba(233, 30, 99, 0.3);
+            border: 2px solid #e91e63;
+            animation: fadeIn 0.5s;
+        }
+
+        .token.current {
+            background: rgba(255, 152, 0, 0.5);
+            border: 2px solid #ff9800;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 5px #ff9800; }
+            50% { box-shadow: 0 0 20px #ff9800; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+
+        .btn.primary {
+            background: #ff9800;
+            color: #000;
+        }
+
+        .btn.primary:hover { background: #ffb74d; }
+
+        .btn.secondary {
+            background: #333;
+            color: #fff;
+            border: 1px solid #666;
+        }
+
+        .btn.secondary:hover { background: #444; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Probability bars */
+        .prob-container { margin: 10px 0; }
+
+        .prob-row {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+            font-size: 11px;
+        }
+
+        .prob-label {
+            width: 60px;
+            color: #888;
+            text-align: right;
+            margin-right: 10px;
+        }
+
+        .prob-bar {
+            height: 20px;
+            background: linear-gradient(90deg, #ff9800, #f57c00);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding-left: 6px;
+            color: #000;
+            font-size: 10px;
+            font-weight: bold;
+            min-width: 30px;
+            transition: width 0.3s;
+        }
+
+        .prob-bar.selected {
+            background: linear-gradient(90deg, #e91e63, #c2185b);
+        }
+
+        /* Causal mask */
+        .mask-grid {
+            display: inline-grid;
+            gap: 2px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px;
+            border-radius: 6px;
+        }
+
+        .mask-cell {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .mask-cell.see { background: rgba(102, 187, 106, 0.5); color: #fff; }
+        .mask-cell.no-see { background: rgba(239, 83, 80, 0.3); color: #666; }
+
+        .highlight { color: #ffa726; font-weight: bold; }
+        .highlight-blue { color: #4fc3f7; font-weight: bold; }
+        .highlight-green { color: #66bb6a; font-weight: bold; }
+        .highlight-pink { color: #e91e63; font-weight: bold; }
+
+        /* Modal popup */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #ffa726;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h3 {
+            color: #ffa726;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .modal th, .modal td {
+            padding: 8px 10px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .modal th {
+            color: #ffa726;
+            font-weight: bold;
+        }
+
+        .modal td {
+            color: #ccc;
+        }
+
+        .modal td:first-child {
+            text-align: left;
+            color: #888;
+        }
+
+        .modal td.ours {
+            color: #4fc3f7;
+            font-weight: bold;
+        }
+
+        .modal .close-btn {
+            display: block;
+            margin: 15px auto 0;
+            padding: 8px 20px;
+            background: #ffa726;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .modal .close-btn:hover {
+            background: #ffb74d;
+        }
+
+        .compare-btn {
+            background: rgba(255, 152, 0, 0.2);
+            border: 1px solid #ffa726;
+            color: #ffa726;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.3s;
+        }
+
+        .compare-btn:hover {
+            background: rgba(255, 152, 0, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <h1>Architecture GPT - Structure & Calcul</h1>
+    <p class="subtitle">Décodeur causal avec génération auto-régressive</p>
+
+    <div class="config-display">
+        <code>vocab=10</code> |
+        <code>embed=6</code> |
+        <code>heads=2</code> |
+        <code>layers=1</code> |
+        <code>seq="Le chat"</code>
+        <button class="compare-btn" onclick="showModal()">📊 GPT réels</button>
+    </div>
+
+    <!-- Modal dimensions réelles -->
+    <div class="modal-overlay" id="modal" onclick="hideModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3>📊 Dimensions des vrais GPT</h3>
+            <table>
+                <tr>
+                    <th>Paramètre</th>
+                    <th>Nous</th>
+                    <th>GPT-2 Small</th>
+                    <th>GPT-2 XL</th>
+                    <th>GPT-3</th>
+                </tr>
+                <tr>
+                    <td>vocab</td>
+                    <td class="ours">10</td>
+                    <td>50 257</td>
+                    <td>50 257</td>
+                    <td>50 257</td>
+                </tr>
+                <tr>
+                    <td>embed (d_model)</td>
+                    <td class="ours">6</td>
+                    <td>768</td>
+                    <td>1 600</td>
+                    <td>12 288</td>
+                </tr>
+                <tr>
+                    <td>heads</td>
+                    <td class="ours">2</td>
+                    <td>12</td>
+                    <td>25</td>
+                    <td>96</td>
+                </tr>
+                <tr>
+                    <td>d_k (embed/heads)</td>
+                    <td class="ours">3</td>
+                    <td>64</td>
+                    <td>64</td>
+                    <td>128</td>
+                </tr>
+                <tr>
+                    <td>layers (décodeurs)</td>
+                    <td class="ours">1</td>
+                    <td>12</td>
+                    <td>48</td>
+                    <td>96</td>
+                </tr>
+                <tr>
+                    <td>FFN hidden</td>
+                    <td class="ours">12</td>
+                    <td>3 072</td>
+                    <td>6 400</td>
+                    <td>49 152</td>
+                </tr>
+                <tr>
+                    <td>context (seq max)</td>
+                    <td class="ours">2</td>
+                    <td>1 024</td>
+                    <td>1 024</td>
+                    <td>2 048</td>
+                </tr>
+                <tr>
+                    <td>params total</td>
+                    <td class="ours">~500</td>
+                    <td>117 M</td>
+                    <td>1.5 B</td>
+                    <td>175 B</td>
+                </tr>
+            </table>
+            <button class="close-btn" onclick="hideModal()">Fermer</button>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <!-- Left: Architecture (bottom to top) -->
+        <div class="arch-panel">
+            <h2>Architecture GPT</h2>
+            <div class="architecture">
+                <!-- Output (top) -->
+                <div class="arch-block output-block" data-step="13" onclick="showStep(13)">
+                    Token Prédit
+                    <div class="dimensions">sampling / argmax</div>
+                </div>
+                <div class="dim-label">↑ index dans vocab</div>
+
+                <div class="arrow"></div>
+
+                <div class="arch-block lm-head" data-step="12" onclick="showStep(12)">
+                    LM Head + Softmax
+                    <div class="dimensions">→ probabilités</div>
+                </div>
+                <div class="dim-label">↑ (seq, vocab) = (2, 10)</div>
+
+                <div class="arrow"></div>
+
+                <div class="arch-block layer-norm" data-step="11" onclick="showStep(11)">
+                    LayerNorm Final
+                </div>
+                <div class="dim-label">↑ (seq, embed) = (2, 6)</div>
+
+                <div class="arrow"></div>
+
+                <!-- Decoder Blocks ×N -->
+                <div class="arch-block decoder-stack" data-step="3" onclick="showStep(3)">
+                    <div class="decoder-row">
+                        <!-- Décodeur 1 (détaillé) -->
+                        <div class="decoder-block" style="min-width:120px;">
+                            <div class="decoder-block-title">Décodeur 1</div>
+                            <div class="sub-block norm" data-step="10" onclick="event.stopPropagation(); showStep(10)">Add & Norm</div>
+                            <div class="sub-block ffn" data-step="9" onclick="event.stopPropagation(); showStep(9)">FFN</div>
+                            <div class="sub-block norm" data-step="8" onclick="event.stopPropagation(); showStep(8)">Add & Norm</div>
+                            <div class="sub-block attention" data-step="7" onclick="event.stopPropagation(); showStep(7)">Concat+W<sub>O</sub></div>
+                            <div class="sub-block attention" data-step="6" onclick="event.stopPropagation(); showStep(6)">Attn (∥)</div>
+                            <div class="sub-block attention" data-step="5" onclick="event.stopPropagation(); showStep(5)" style="border-left-color:#e91e63;">
+                                <strong style="color:#e91e63;">+ Mask</strong>
+                            </div>
+                            <div class="sub-block attention" data-step="4" onclick="event.stopPropagation(); showStep(4)">QK<sup>T</sup>/√d</div>
+                            <div class="sub-block attention" data-step="3" onclick="event.stopPropagation(); showStep(3)">Q, K, V</div>
+                        </div>
+
+                        <div class="decoder-arrow">→</div>
+                        <div class="decoder-ellipsis">...</div>
+                        <div class="decoder-arrow">→</div>
+
+                        <!-- Décodeur N (même structure) -->
+                        <div class="decoder-block" style="min-width:110px;">
+                            <div class="decoder-block-title">Décodeur N</div>
+                            <div class="sub-block norm" data-step="10" onclick="event.stopPropagation(); showStep(10)">Add & Norm</div>
+                            <div class="sub-block ffn" data-step="9" onclick="event.stopPropagation(); showStep(9)">FFN</div>
+                            <div class="sub-block norm" data-step="8" onclick="event.stopPropagation(); showStep(8)">Add & Norm</div>
+                            <div class="sub-block attention" data-step="7" onclick="event.stopPropagation(); showStep(7)">Concat+W<sub>O</sub></div>
+                            <div class="sub-block attention" data-step="6" onclick="event.stopPropagation(); showStep(6)">Attn (∥)</div>
+                            <div class="sub-block attention" data-step="5" onclick="event.stopPropagation(); showStep(5)" style="border-left-color:#e91e63;">
+                                <strong style="color:#e91e63;">+ Mask</strong>
+                            </div>
+                            <div class="sub-block attention" data-step="4" onclick="event.stopPropagation(); showStep(4)">QK<sup>T</sup>/√d</div>
+                            <div class="sub-block attention" data-step="3" onclick="event.stopPropagation(); showStep(3)">Q, K, V</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dim-label">↑ (seq, embed) = (2, 6)</div>
+
+                <div class="arrow"></div>
+
+                <div class="plus-circle">+</div>
+                <div class="dim-label">↑ (2, 6)</div>
+
+                <!-- Embedding + PE side by side -->
+                <div style="display: flex; gap: 10px;">
+                    <div class="arch-block embedding-block" style="width: 100px; font-size: 11px;" data-step="1" onclick="showStep(1)">
+                        Embedding
+                        <div class="dimensions">lookup</div>
+                    </div>
+                    <div class="arch-block pos-encoding" style="width: 100px; font-size: 11px;" data-step="2" onclick="showStep(2)">
+                        Pos Enc
+                        <div class="dimensions">sinusoïde</div>
+                    </div>
+                </div>
+                <div class="dim-label">↑ (2, 6) chacun</div>
+
+                <div class="arrow"></div>
+
+                <!-- Input (bottom) -->
+                <div class="arch-block input-block" data-step="0" onclick="showStep(0)">
+                    Tokens d'entrée
+                    <div class="dimensions">"Le chat" → [1, 2]</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Calculations -->
+        <div class="calc-panel" id="calc-panel"></div>
+    </div>
+
+    <script>
+        // Modal functions
+        function showModal() {
+            document.getElementById('modal').classList.add('show');
+        }
+        function hideModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideModal();
+        });
+
+        const tokens = ['Le', 'chat'];
+        const tokenIds = [1, 2];
+        const vocab = ['<pad>', 'Le', 'chat', 'mange', 'dort', 'la', 'souris', 'bien', 'vite', '<eos>'];
+        const seqLen = 2;
+        const embedDim = 6;
+        const vocabSize = 10;
+
+        // Embedding matrix
+        const E = [];
+        for (let i = 0; i < vocabSize; i++) {
+            E[i] = [];
+            for (let j = 0; j < embedDim; j++) {
+                E[i][j] = Math.sin(i * 3 + j * 2) * 0.5 + Math.cos(i + j * 4) * 0.3;
+            }
+        }
+
+        const X_emb = tokenIds.map(id => E[id].slice());
+
+        // Positional Encoding
+        const PE = [];
+        for (let pos = 0; pos < seqLen; pos++) {
+            PE[pos] = [];
+            for (let i = 0; i < embedDim; i++) {
+                PE[pos][i] = i % 2 === 0
+                    ? Math.sin(pos / Math.pow(10000, i / embedDim))
+                    : Math.cos(pos / Math.pow(10000, (i-1) / embedDim));
+            }
+        }
+
+        const X = X_emb.map((row, i) => row.map((v, j) => v + PE[i][j]));
+
+        // Weights
+        const W_Q = [], W_K = [], W_V = [], W_O = [];
+        for (let i = 0; i < embedDim; i++) {
+            W_Q[i] = []; W_K[i] = []; W_V[i] = []; W_O[i] = [];
+            for (let j = 0; j < embedDim; j++) {
+                W_Q[i][j] = Math.sin(i * 2 + j * 3) * 0.3;
+                W_K[i][j] = Math.cos(i * 3 + j * 2) * 0.3;
+                W_V[i][j] = Math.sin(i + j * 4) * 0.3;
+                W_O[i][j] = Math.cos(i * 4 + j) * 0.25;
+            }
+        }
+
+        const W_ffn1 = [], b_ffn1 = [], W_ffn2 = [], b_ffn2 = [];
+        for (let i = 0; i < 6; i++) {
+            W_ffn1[i] = [];
+            for (let j = 0; j < 12; j++) W_ffn1[i][j] = Math.sin(i * 7 + j * 3) * 0.3;
+        }
+        for (let j = 0; j < 12; j++) b_ffn1[j] = Math.cos(j * 5) * 0.1;
+        for (let i = 0; i < 12; i++) {
+            W_ffn2[i] = [];
+            for (let j = 0; j < 6; j++) W_ffn2[i][j] = Math.sin(i * 5 + j * 7) * 0.25;
+        }
+        for (let j = 0; j < 6; j++) b_ffn2[j] = Math.cos(j * 3) * 0.05;
+
+        const W_lm = [];
+        for (let i = 0; i < embedDim; i++) {
+            W_lm[i] = [];
+            for (let j = 0; j < vocabSize; j++) W_lm[i][j] = E[j][i];
+        }
+
+        // Math
+        function matmul(A, B) {
+            return A.map((row, i) => B[0].map((_, j) => row.reduce((s, v, k) => s + v * B[k][j], 0)));
+        }
+        function transpose(A) { return A[0].map((_, i) => A.map(row => row[i])); }
+        function softmaxRows(A) {
+            return A.map(row => {
+                const max = Math.max(...row.filter(x => x !== -Infinity));
+                const exps = row.map(x => x === -Infinity ? 0 : Math.exp(x - max));
+                const sum = exps.reduce((a, b) => a + b, 0);
+                return exps.map(e => e / sum);
+            });
+        }
+        function addMatrices(A, B) { return A.map((row, i) => row.map((v, j) => v + B[i][j])); }
+        function layerNorm(A) {
+            return A.map(row => {
+                const mean = row.reduce((a, b) => a + b, 0) / row.length;
+                const variance = row.reduce((a, b) => a + (b - mean) ** 2, 0) / row.length;
+                const std = Math.sqrt(variance + 1e-5);
+                return row.map(x => (x - mean) / std);
+            });
+        }
+        function relu(A) { return A.map(row => row.map(x => Math.max(0, x))); }
+        function linearBias(X, W, b) { return matmul(X, W).map(row => row.map((v, j) => v + b[j])); }
+        function applyCausalMask(scores) {
+            return scores.map((row, i) => row.map((v, j) => j > i ? -Infinity : v));
+        }
+
+        // Compute
+        const numHeads = 2;
+        const headDim = embedDim / numHeads; // 3
+        const Q = matmul(X, W_Q), K = matmul(X, W_K), V = matmul(X, W_V);
+
+        // Split into heads: (seq, embed) -> (seq, headDim) per head
+        function splitHeads(M) {
+            return Array.from({length: numHeads}, (_, h) =>
+                M.map(row => row.slice(h * headDim, (h + 1) * headDim))
+            );
+        }
+        const Q_heads = splitHeads(Q);
+        const K_heads = splitHeads(K);
+        const V_heads = splitHeads(V);
+
+        // Attention per head
+        const scale = Math.sqrt(headDim);
+        const scores_per_head = Q_heads.map((Qh, h) =>
+            matmul(Qh, transpose(K_heads[h])).map(row => row.map(v => v / scale))
+        );
+        const scores_masked_per_head = scores_per_head.map(s => applyCausalMask(s));
+        const attention_per_head = scores_masked_per_head.map(s => softmaxRows(s));
+        const attn_out_per_head = attention_per_head.map((a, h) => matmul(a, V_heads[h]));
+
+        // Concat heads: (seq, headDim) * numHeads -> (seq, embed)
+        const concat_heads = attn_out_per_head[0].map((_, i) =>
+            attn_out_per_head.flatMap(head => head[i])
+        );
+        const mh_out = matmul(concat_heads, W_O);
+
+        // For backward compat (single-head view)
+        const scores_raw = scores_per_head[0];
+        const scores_masked = scores_masked_per_head[0];
+        const attention = attention_per_head[0];
+        const attn_out = attn_out_per_head[0];
+
+        const afterAdd1 = addMatrices(X, mh_out);
+        const afterNorm1 = layerNorm(afterAdd1);
+        const ffn1 = linearBias(afterNorm1, W_ffn1, b_ffn1);
+        const ffnRelu = relu(ffn1);
+        const ffn2 = linearBias(ffnRelu, W_ffn2, b_ffn2);
+        const afterAdd2 = addMatrices(afterNorm1, ffn2);
+        const afterNorm2 = layerNorm(afterAdd2);
+        const finalNorm = layerNorm(afterNorm2);
+        const logits = matmul(finalNorm, W_lm);
+        const probs = softmaxRows(logits);
+        const lastProbs = probs[seqLen - 1];
+
+        // Generation state
+        let genStep = 0;
+        const genTokens = ['mange', 'la', 'souris', '.'];
+        const genProbs = [
+            { 'mange': 0.35, 'dort': 0.25, 'sur': 0.15, 'la': 0.12, '.': 0.08, '<eos>': 0.05 },
+            { 'la': 0.40, 'le': 0.22, 'une': 0.18, 'du': 0.10, 'sa': 0.07, '.': 0.03 },
+            { 'souris': 0.45, 'viande': 0.20, 'pâtée': 0.15, 'croquette': 0.12, '.': 0.05, '<eos>': 0.03 },
+            { '.': 0.55, 'grise': 0.18, 'vite': 0.12, 'bien': 0.08, '<eos>': 0.07 }
+        ];
+
+        let currentStep = 0;
+
+        function fmt(n) {
+            if (n === -Infinity) return '-∞';
+            const f = n.toFixed(2);
+            return f === '-0.00' ? '0.00' : f;
+        }
+        function cellClass(n) {
+            if (n === -Infinity) return 'masked';
+            return Math.abs(n) < 0.005 ? 'zero' : n < 0 ? 'negative' : 'positive';
+        }
+
+        function createMatrix(data, label, dims, type = '', rowLabels = null) {
+            const rows = data.length, cols = data[0].length;
+            let html = `<div class="matrix-container">`;
+            html += `<div class="matrix-label">${label} <span class="dims">${dims}</span></div>`;
+            html += `<div class="matrix-with-labels">`;
+            if (rowLabels) {
+                html += `<div class="row-labels">`;
+                rowLabels.forEach(l => html += `<div class="row-label">${l}</div>`);
+                html += `</div>`;
+            }
+            html += `<div class="matrix ${type}" style="grid-template-columns: repeat(${cols}, 38px);">`;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    html += `<div class="matrix-cell ${cellClass(data[i][j])}">${fmt(data[i][j])}</div>`;
+                }
+            }
+            html += `</div></div></div>`;
+            return html;
+        }
+
+        function createMask(size) {
+            let html = `<div class="mask-grid" style="grid-template-columns: repeat(${size}, 24px);">`;
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    html += `<div class="mask-cell ${j <= i ? 'see' : 'no-see'}">${j <= i ? '✓' : '✗'}</div>`;
+                }
+            }
+            return html + '</div>';
+        }
+
+        function createProbBars(probObj, selected = null) {
+            const entries = Object.entries(probObj).sort((a, b) => b[1] - a[1]);
+            let html = '<div class="prob-container">';
+            for (const [word, p] of entries.slice(0, 6)) {
+                const width = Math.max(p * 200, 25);
+                html += `<div class="prob-row">
+                    <span class="prob-label">${word}</span>
+                    <div class="prob-bar ${word === selected ? 'selected' : ''}" style="width: ${width}px;">${(p*100).toFixed(0)}%</div>
+                </div>`;
+            }
+            return html + '</div>';
+        }
+
+        function updateGenDemo() {
+            const seqDiv = document.getElementById('gen-sequence');
+            const probDiv = document.getElementById('gen-probs');
+            const maskDiv = document.getElementById('gen-mask');
+            if (!seqDiv) return;
+
+            let html = '<div class="token input">Le</div><div class="token input">chat</div>';
+            for (let i = 0; i < genStep; i++) {
+                html += `<div class="token generated">${genTokens[i]}</div>`;
+            }
+            if (genStep < genTokens.length) {
+                html += '<div class="token current">?</div>';
+            }
+            seqDiv.innerHTML = html;
+
+            if (genStep < genProbs.length) {
+                probDiv.innerHTML = createProbBars(genProbs[genStep], genStep > 0 ? genTokens[genStep-1] : null);
+            } else {
+                probDiv.innerHTML = '<p style="color:#888;">Génération terminée</p>';
+            }
+
+            const maskSize = 2 + genStep;
+            maskDiv.innerHTML = createMask(maskSize);
+            maskDiv.querySelector('.mask-grid').style.gridTemplateColumns = `repeat(${maskSize}, 20px)`;
+
+            document.getElementById('gen-btn').disabled = genStep >= genTokens.length;
+        }
+
+        function nextGen() {
+            if (genStep < genTokens.length) {
+                genStep++;
+                updateGenDemo();
+            }
+        }
+
+        function resetGen() {
+            genStep = 0;
+            updateGenDemo();
+        }
+
+        async function autoGen() {
+            while (genStep < genTokens.length) {
+                await new Promise(r => setTimeout(r, 700));
+                nextGen();
+            }
+        }
+
+        const steps = [
+            {
+                title: 'Tokens d\'entrée',
+                formula: 'ids ∈ ℕ',
+                content: () => `
+                    <div class="calc-description">Entrée de GPT : séquence de <strong>tokens</strong> (indices dans le vocabulaire).</div>
+                    <div class="matrix-section">
+                        ${tokens.map((t, i) => `<div style="text-align:center;padding:15px 25px;background:rgba(76,175,80,0.2);border:2px solid #4caf50;border-radius:10px;">
+                            <div style="color:#4caf50;font-weight:bold;font-size:18px;">"${t}"</div>
+                            <div style="color:#888;font-size:11px;margin-top:5px;">id = ${tokenIds[i]}</div>
+                        </div>`).join('')}
+                    </div>
+                    <div class="info-box info">
+                        <h4>Vocabulaire</h4>
+                        <p>${vocab.map((w, i) => `<code>${i}:${w}</code>`).join(' ')}</p>
+                    </div>
+                `
+            },
+            {
+                title: 'Embedding',
+                formula: 'X_emb = E[ids]',
+                content: () => `
+                    <div class="calc-description">Chaque token → <strong>vecteur dense</strong> de dimension ${embedDim}. La matrice E a shape <code>(vocab, embed)</code> = (${vocabSize}, ${embedDim}).</div>
+                    <div class="matrix-section">
+                        ${createMatrix(X_emb, 'X_emb', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                    </div>
+                    <div class="info-box success">
+                        <h4>Weight Tying (partage de poids)</h4>
+                        <p>GPT réutilise la matrice d'embedding <strong>E transposée</strong> comme LM Head :</p>
+                        <p style="margin-top:5px;"><code>W_lm = Eᵀ</code> → shape <code>(embed, vocab)</code></p>
+                        <p style="margin-top:5px;">Économie : au lieu de 2 matrices, on n'en apprend qu'une seule !</p>
+                    </div>
+                `
+            },
+            {
+                title: 'Positional Encoding',
+                formula: 'X = X_emb + PE',
+                content: () => `
+                    <div class="calc-description">Ajout de l'<strong>information de position</strong>.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(X_emb, 'X_emb', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(PE, 'PE', `(${seqLen}, ${embedDim})`, 'result', ['pos0', 'pos1'])}
+                        <span class="operator">=</span>
+                        ${createMatrix(X, 'X', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                    </div>
+                    <div class="info-box warning">
+                        <h4>Pourquoi encoder la position ?</h4>
+                        <p>L'attention est <strong>permutation invariante</strong> : sans position, "Le chat mange" et "mange chat Le" donneraient le même résultat !</p>
+                    </div>
+                    <div class="info-box info">
+                        <h4>Sinusoïdal vs Appris</h4>
+                        <p>Ici on montre l'encodage <strong>sinusoïdal</strong> (Transformer original). GPT-2/3 utilisent des embeddings de position <strong>appris</strong> (une ligne de matrice par position).</p>
+                    </div>
+                `
+            },
+            // === ATTENTION MULTI-HEAD DÉCOMPOSÉE ===
+            {
+                title: 'Q, K, V + Split en têtes',
+                formula: 'Q,K,V = XW → split(h)',
+                content: () => `
+                    <div class="calc-description">Projection puis <strong>split en ${numHeads} têtes</strong>. Chaque tête a d_k = ${headDim}.</div>
+                    <div class="matrix-section" style="flex-wrap:wrap;gap:10px;">
+                        ${createMatrix(Q, 'Q', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                        ${createMatrix(K, 'K', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                        ${createMatrix(V, 'V', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                    </div>
+                    <h4 style="color:#ff9800;margin:15px 0 10px;">Split en ${numHeads} têtes (d_k = ${headDim})</h4>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+                        <div style="background:rgba(79,195,247,0.1);padding:10px;border-radius:8px;border:1px solid #4fc3f7;">
+                            <div style="color:#4fc3f7;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 1</div>
+                            <div class="matrix-section" style="gap:8px;">
+                                ${createMatrix(Q_heads[0], 'Q₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                                ${createMatrix(K_heads[0], 'K₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                                ${createMatrix(V_heads[0], 'V₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                            </div>
+                        </div>
+                        <div style="background:rgba(156,39,176,0.1);padding:10px;border-radius:8px;border:1px solid #9c27b0;">
+                            <div style="color:#9c27b0;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 2</div>
+                            <div class="matrix-section" style="gap:8px;">
+                                ${createMatrix(Q_heads[1], 'Q₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                                ${createMatrix(K_heads[1], 'K₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                                ${createMatrix(V_heads[1], 'V₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-box info">
+                        <h4>Multi-Head = perspectives multiples</h4>
+                        <p>Chaque tête apprend à "regarder" différemment : syntaxe, sémantique, coréférence...</p>
+                    </div>
+                `
+            },
+            {
+                title: 'Scores par tête',
+                formula: 'S_h = Q_h × K_h^T / √d_k',
+                content: () => `
+                    <div class="calc-description">Chaque tête calcule ses propres scores d'attention <strong>en parallèle</strong>.</div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+                        <div style="background:rgba(79,195,247,0.1);padding:10px;border-radius:8px;border:1px solid #4fc3f7;">
+                            <div style="color:#4fc3f7;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 1</div>
+                            <div class="matrix-section">
+                                ${createMatrix(Q_heads[0], 'Q₁', `(${seqLen}, ${headDim})`, 'input', tokens)}
+                                <span class="operator">×</span>
+                                ${createMatrix(transpose(K_heads[0]), 'K₁ᵀ', `(${headDim}, ${seqLen})`, 'input')}
+                            </div>
+                            <div class="matrix-section">
+                                <span class="operator">/ √${headDim} =</span>
+                                ${createMatrix(scores_per_head[0], 'S₁', `(${seqLen}, ${seqLen})`, 'result', tokens)}
+                            </div>
+                        </div>
+                        <div style="background:rgba(156,39,176,0.1);padding:10px;border-radius:8px;border:1px solid #9c27b0;">
+                            <div style="color:#9c27b0;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 2</div>
+                            <div class="matrix-section">
+                                ${createMatrix(Q_heads[1], 'Q₂', `(${seqLen}, ${headDim})`, 'input', tokens)}
+                                <span class="operator">×</span>
+                                ${createMatrix(transpose(K_heads[1]), 'K₂ᵀ', `(${headDim}, ${seqLen})`, 'input')}
+                            </div>
+                            <div class="matrix-section">
+                                <span class="operator">/ √${headDim} =</span>
+                                ${createMatrix(scores_per_head[1], 'S₂', `(${seqLen}, ${seqLen})`, 'result', tokens)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="properties" style="margin-top:10px;">
+                        <span class="property-badge info">∥ Parallélisable sur GPU</span>
+                        <span class="property-badge">d_k = ${headDim}</span>
+                    </div>
+                `
+            },
+            {
+                title: '+ Masque Causal (-∞)',
+                formula: 'S_masked = S + mask',
+                content: () => `
+                    <div class="calc-description">On ajoute <strong class="highlight-pink">-∞</strong> aux positions futures. <strong>Même masque pour toutes les têtes.</strong></div>
+                    <div class="matrix-section">
+                        ${createMask(seqLen)}
+                        <div style="margin-left:15px;color:#aaa;font-size:11px;">
+                            <p><span class="highlight-green">✓</span> peut voir</p>
+                            <p><span class="highlight-pink">✗</span> → -∞</p>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:15px;">
+                        <div style="background:rgba(79,195,247,0.1);padding:10px;border-radius:8px;border:1px solid #4fc3f7;">
+                            <div style="color:#4fc3f7;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 1</div>
+                            <div class="matrix-section">
+                                ${createMatrix(scores_per_head[0], 'S₁', `(${seqLen}, ${seqLen})`, 'result', tokens)}
+                                <span class="operator">→</span>
+                                ${createMatrix(scores_masked_per_head[0], 'S₁_mask', `(${seqLen}, ${seqLen})`, 'mask', tokens)}
+                            </div>
+                        </div>
+                        <div style="background:rgba(156,39,176,0.1);padding:10px;border-radius:8px;border:1px solid #9c27b0;">
+                            <div style="color:#9c27b0;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 2</div>
+                            <div class="matrix-section">
+                                ${createMatrix(scores_per_head[1], 'S₂', `(${seqLen}, ${seqLen})`, 'result', tokens)}
+                                <span class="operator">→</span>
+                                ${createMatrix(scores_masked_per_head[1], 'S₂_mask', `(${seqLen}, ${seqLen})`, 'mask', tokens)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-box warning">
+                        <h4>Pourquoi -∞ ?</h4>
+                        <p>Après softmax : <code>e^(-∞) = 0</code>. C'est ce qui rend GPT <strong>auto-régressif</strong>.</p>
+                    </div>
+                `
+            },
+            {
+                title: 'Attention (∥) : Softmax × V',
+                formula: 'A_h = softmax(S_h) × V_h',
+                content: () => `
+                    <div class="calc-description">Chaque tête calcule <strong>en parallèle</strong> : softmax puis multiplication par V.</div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+                        <div style="background:rgba(79,195,247,0.1);padding:10px;border-radius:8px;border:1px solid #4fc3f7;">
+                            <div style="color:#4fc3f7;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 1</div>
+                            <div class="matrix-section">
+                                ${createMatrix(scores_masked_per_head[0], 'S₁_mask', `(${seqLen}, ${seqLen})`, 'mask', tokens)}
+                                <span class="operator">→ softmax →</span>
+                                ${createMatrix(attention_per_head[0], 'A₁', `(${seqLen}, ${seqLen})`, 'result', tokens)}
+                            </div>
+                            <div class="matrix-section" style="margin-top:8px;">
+                                <span class="operator">× V₁ =</span>
+                                ${createMatrix(attn_out_per_head[0], 'Out₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                            </div>
+                        </div>
+                        <div style="background:rgba(156,39,176,0.1);padding:10px;border-radius:8px;border:1px solid #9c27b0;">
+                            <div style="color:#9c27b0;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 2</div>
+                            <div class="matrix-section">
+                                ${createMatrix(scores_masked_per_head[1], 'S₂_mask', `(${seqLen}, ${seqLen})`, 'mask', tokens)}
+                                <span class="operator">→ softmax →</span>
+                                ${createMatrix(attention_per_head[1], 'A₂', `(${seqLen}, ${seqLen})`, 'result', tokens)}
+                            </div>
+                            <div class="matrix-section" style="margin-top:8px;">
+                                <span class="operator">× V₂ =</span>
+                                ${createMatrix(attn_out_per_head[1], 'Out₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="properties" style="margin-top:10px;">
+                        <span class="property-badge pink">-∞ → 0</span>
+                        <span class="property-badge">Σ ligne = 1</span>
+                        <span class="property-badge info">∥ en parallèle</span>
+                    </div>
+                `
+            },
+            {
+                title: 'Concat + W_O',
+                formula: 'O = Concat(heads) × W_O',
+                content: () => `
+                    <div class="calc-description">On <strong>concatène</strong> les sorties des têtes, puis on projette avec W_O.</div>
+                    <h4 style="color:#ff9800;margin:10px 0;">Concat des têtes</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(attn_out_per_head[0], 'Out₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                        <span class="operator" style="font-size:14px;">∥</span>
+                        ${createMatrix(attn_out_per_head[1], 'Out₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                        <span class="operator">=</span>
+                        ${createMatrix(concat_heads, 'Concat', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                    </div>
+                    <h4 style="color:#ff9800;margin:15px 0 10px;">Projection W_O</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(concat_heads, 'Concat', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                        <span class="operator">× W_O →</span>
+                        ${createMatrix(mh_out, 'MH_Out', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                    </div>
+                    <div class="info-box success">
+                        <h4>Multi-Head complet</h4>
+                        <p>Les ${numHeads} têtes ont capturé des <strong>aspects différents</strong> des relations. W_O les combine en une représentation unifiée.</p>
+                    </div>
+                `
+            },
+            // === FIN ATTENTION ===
+            {
+                title: 'Add & LayerNorm (1)',
+                formula: 'LN(X + Attn)',
+                content: () => `
+                    <div class="calc-description">Connexion résiduelle + normalisation.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(X, 'X', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(mh_out, 'Attn', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                        <span class="operator">→ LN →</span>
+                        ${createMatrix(afterNorm1, 'LN₁', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                    </div>
+                    <div class="info-box success">
+                        <h4>Pourquoi la connexion résiduelle ?</h4>
+                        <ul>
+                            <li><strong>Gradient flow</strong> : le gradient peut "sauter" directement via le +</li>
+                            <li><strong>Identity mapping</strong> : si Attn≈0, on garde X intact</li>
+                            <li>Permet d'empiler des dizaines de couches sans dégradation</li>
+                        </ul>
+                    </div>
+                    <div class="info-box info">
+                        <h4>Pre-LN vs Post-LN</h4>
+                        <p>Ici on montre <strong>Post-LN</strong> (Transformer original). GPT-2/3 utilisent <strong>Pre-LN</strong> : <code>X + Attn(LN(X))</code> — LN avant l'attention, pas après. Plus stable pour l'entraînement.</p>
+                    </div>
+                `
+            },
+            {
+                title: 'FFN',
+                formula: 'GELU(xW₁+b₁)W₂+b₂',
+                content: () => `
+                    <div class="calc-description">MLP : expansion puis contraction. Traitement <strong>par position</strong> (pas d'interaction entre tokens).</div>
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm1, 'LN₁', `(${seqLen}, 6)`, 'input', tokens)}
+                        <span class="operator">→ W₁ → GELU →</span>
+                        ${createMatrix(ffnRelu, 'Hidden', `(${seqLen}, 12)`, 'result', tokens)}
+                    </div>
+                    <div class="matrix-section">
+                        <span class="operator">→ W₂ →</span>
+                        ${createMatrix(ffn2, 'FFN out', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                    </div>
+                    <div class="info-box">
+                        <h4>Rôle du FFN</h4>
+                        <ul>
+                            <li><strong>Non-linéarité</strong> : GELU permet d'apprendre des patterns complexes</li>
+                            <li><strong>Expansion</strong> : la couche cachée (ici ×2, GPT utilise ×4) augmente la capacité</li>
+                            <li><strong>Par position</strong> : chaque token est traité indépendamment (vs attention qui mélange)</li>
+                        </ul>
+                    </div>
+                `
+            },
+            {
+                title: 'Add & LayerNorm (2)',
+                formula: 'LN(LN₁ + FFN)',
+                content: () => `
+                    <div class="calc-description">Sortie du bloc décodeur.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm1, 'LN₁', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(ffn2, 'FFN', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                        <span class="operator">→ LN →</span>
+                        ${createMatrix(afterNorm2, 'Output', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                    </div>
+                `
+            },
+            {
+                title: 'LayerNorm Final',
+                formula: 'LN(output)',
+                content: () => `
+                    <div class="calc-description">Normalisation avant projection vers vocabulaire.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(finalNorm, 'H', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                    </div>
+                    <div class="info-box">
+                        <h4>Pourquoi un LN final ?</h4>
+                        <p>Stabilise les représentations avant le LM Head. Avec Pre-LN (GPT-2/3), ce LN final est <strong>essentiel</strong> car c'est le seul après le dernier bloc.</p>
+                    </div>
+                `
+            },
+            {
+                title: 'LM Head',
+                formula: 'logits = H × E^T',
+                content: () => `
+                    <div class="calc-description">Projection vers vocabulaire : un score par mot.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(finalNorm, 'H', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                        <span class="operator">× Eᵀ →</span>
+                        ${createMatrix(logits, 'Logits', `(${seqLen}, ${vocabSize})`, 'result', tokens)}
+                    </div>
+                    <div class="info-box">
+                        <h4>Logits</h4>
+                        <p>Scores bruts, non normalisés. Softmax les transforme en probabilités.</p>
+                    </div>
+                `
+            },
+            {
+                title: 'Softmax & Génération',
+                formula: 'P = softmax(logits)',
+                content: () => `
+                    <div class="calc-description">Softmax → probabilités. On prédit depuis la <strong>dernière position</strong>.</div>
+
+                    <div class="generation-demo">
+                        <h4>Démo Génération Interactive</h4>
+                        <p style="color:#888;font-size:11px;margin-bottom:10px;">Séquence :</p>
+                        <div class="token-sequence" id="gen-sequence"></div>
+
+                        <div class="controls">
+                            <button class="btn primary" id="gen-btn" onclick="nextGen()">▶ Générer</button>
+                            <button class="btn secondary" onclick="resetGen()">↺ Reset</button>
+                            <button class="btn secondary" onclick="autoGen()">⏩ Auto</button>
+                        </div>
+
+                        <p style="color:#888;font-size:11px;margin:15px 0 5px;">Probabilités (prochain token) :</p>
+                        <div id="gen-probs"></div>
+
+                        <p style="color:#888;font-size:11px;margin:15px 0 5px;">Masque causal (grandit à chaque token) :</p>
+                        <div id="gen-mask"></div>
+                    </div>
+
+                    <div class="info-box warning">
+                        <h4>Génération = séquentielle</h4>
+                        <p><strong>Entraînement</strong> : toutes les positions en parallèle (on connaît la séquence cible).</p>
+                        <p style="margin-top:5px;"><strong>Génération</strong> : token par token, car chaque prédiction dépend des précédentes. C'est le "goulot d'étranglement" des LLM.</p>
+                    </div>
+                    <div class="info-box">
+                        <h4>Stratégies de sampling</h4>
+                        <ul>
+                            <li><strong>Greedy</strong> : toujours le plus probable</li>
+                            <li><strong>Temperature</strong> : logits/T (T↓=sûr, T↑=créatif)</li>
+                            <li><strong>Top-k</strong> : garde les k meilleurs</li>
+                            <li><strong>Top-p</strong> : garde jusqu'à cumul p%</li>
+                        </ul>
+                    </div>
+                `
+            }
+        ];
+
+        function showStep(index) {
+            currentStep = index;
+            document.querySelectorAll('.arch-block, .sub-block').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll(`[data-step="${index}"]`).forEach(b => b.classList.add('active'));
+
+            const step = steps[index];
+            document.getElementById('calc-panel').innerHTML = `
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="showStep(${index - 1})" ${index === 0 ? 'disabled' : ''}>← Précédent</button>
+                    <div class="step-counter">Étape <span class="num">${index + 1}</span> / ${steps.length}</div>
+                    <button class="nav-btn" onclick="showStep(${index + 1})" ${index === steps.length - 1 ? 'disabled' : ''}>Suivant →</button>
+                </div>
+                <div class="calc-title">
+                    <span>${step.title}</span>
+                    <span class="formula">${step.formula}</span>
+                </div>
+                ${step.content()}
+            `;
+
+            if (index === 13) setTimeout(updateGenDemo, 50);
+        }
+
+        showStep(0);
+    </script>
+</body>
+</html>

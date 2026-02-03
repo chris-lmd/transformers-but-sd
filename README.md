@@ -21,7 +21,7 @@ Comprendre et implémenter l'architecture Transformer, la base de GPT, BERT, Cha
 | 3 | Maîtriser l'Attention | 2h | [![TP](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03/TP-03-Attention.ipynb) [![Note](https://img.shields.io/badge/Note-Attention-blue)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-03/Note-Attention.ipynb)                                                                                                                                                                                                          |
 | 4 | Multi-Head & Transformer | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-04/TP-04-MultiHead-Transformer.ipynb)                                                                                                                                                                                                                                                                                                                                                                 |
 | 5 | Mini-GPT : Génération de noms | 2h | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-05/TP-05-MiniGPT-Noms.ipynb)                                                                                                                                                                                                                                                                                                                                                                          |
-| 6 | Mini-GPT : Fine-Tuning | 2h | [![TP](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06/TP-06-MiniGPT-FineTuning.ipynb) [![V2](https://img.shields.io/badge/V2-Optimisé-green)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06/TP-06-MiniGPT-FineTuning-V2.ipynb) [![V3](https://img.shields.io/badge/V3-Optimisé-green)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06/TP-06-MiniGPT-FineTuning-V3.ipynb) |
+| 6 | Fine-tuning GPT-2 | 2h | [![TP](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06/TP-06-MiniGPT-FineTuning.ipynb) [![Exploration](https://img.shields.io/badge/Exploration-Techniques-blue)](https://colab.research.google.com/github/chris-lmd/transformers-but-sd/blob/main/Session-06/TP-06-Exploration.ipynb) |
 
 ### Projets
 
@@ -77,7 +77,7 @@ transformers-but-sd/
 │   └── TP-05-MiniGPT-Noms.ipynb
 ├── Session-06/
 │   ├── TP-06-MiniGPT-FineTuning.ipynb
-│   └── TP-06-MiniGPT-FineTuning-V2.ipynb
+│   └── TP-06-Exploration.ipynb
 ├── Projet-FakeNews/
 │   └── TP-Projet-FakeNews.ipynb
 └── Projet-MiniGPT/
