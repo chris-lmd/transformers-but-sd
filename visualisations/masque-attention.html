@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masques d'Attention - Plusieurs possibilités</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            padding: 12px 20px;
+            border: 2px solid #4fc3f7;
+            background: transparent;
+            color: #4fc3f7;
+            font-size: 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .mode-btn:hover {
+            background: rgba(79, 195, 247, 0.2);
+        }
+
+        .mode-btn.active {
+            background: #4fc3f7;
+            color: #1a1a2e;
+        }
+
+        .mode-btn.bert { border-color: #66bb6a; }
+        .mode-btn.bert.active { background: #66bb6a; }
+
+        .mode-btn.gpt { border-color: #ffa726; }
+        .mode-btn.gpt.active { background: #ffa726; }
+
+        .mode-btn.padding { border-color: #9e9e9e; }
+        .mode-btn.padding.active { background: #9e9e9e; }
+
+        .mode-btn.prefix { border-color: #ab47bc; }
+        .mode-btn.prefix.active { background: #ab47bc; }
+
+        .mode-btn.local { border-color: #26c6da; }
+        .mode-btn.local.active { background: #26c6da; }
+
+        .mode-btn.sparse { border-color: #ec407a; }
+        .mode-btn.sparse.active { background: #ec407a; }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 1000px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 25px;
+        }
+
+        .panel h2 {
+            color: #4fc3f7;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .sentence {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .word {
+            padding: 8px 12px;
+            background: rgba(79, 195, 247, 0.2);
+            border: 2px solid #4fc3f7;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+
+        .word:hover {
+            transform: scale(1.05);
+        }
+
+        .word.selected {
+            background: #4fc3f7;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        .word.visible {
+            box-shadow: 0 0 15px rgba(102, 187, 106, 0.8);
+            border-color: #66bb6a;
+        }
+
+        .word.hidden {
+            opacity: 0.3;
+            border-style: dashed;
+        }
+
+        .word.pad-token {
+            background: rgba(158, 158, 158, 0.2);
+            border-color: #9e9e9e;
+            color: #888;
+        }
+
+        .word.prefix-token {
+            background: rgba(171, 71, 188, 0.2);
+            border-color: #ab47bc;
+        }
+
+        .word.global-token {
+            background: rgba(236, 64, 122, 0.2);
+            border-color: #ec407a;
+        }
+
+        .matrix-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .matrix-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .matrix {
+            display: grid;
+            gap: 2px;
+        }
+
+        .matrix-cell {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .matrix-cell.header {
+            background: transparent;
+            color: #888;
+            font-weight: bold;
+            font-size: 9px;
+        }
+
+        .matrix-cell.allowed {
+            background: rgba(102, 187, 106, 0.6);
+            color: #fff;
+        }
+
+        .matrix-cell.blocked {
+            background: rgba(239, 83, 80, 0.3);
+            color: #666;
+        }
+
+        .matrix-cell.highlight {
+            box-shadow: 0 0 10px #4fc3f7;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .explanation {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .explanation h3 {
+            color: #4fc3f7;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .explanation p {
+            color: #aaa;
+            line-height: 1.5;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .highlight-green { color: #66bb6a; font-weight: bold; }
+        .highlight-red { color: #ef5350; font-weight: bold; }
+        .highlight-purple { color: #ce93d8; font-weight: bold; }
+        .highlight-cyan { color: #26c6da; font-weight: bold; }
+        .highlight-pink { color: #ec407a; font-weight: bold; }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .legend-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .legend-box.allowed { background: rgba(102, 187, 106, 0.6); }
+        .legend-box.blocked { background: rgba(239, 83, 80, 0.3); }
+
+        .interactive-hint {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .info-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #4fc3f7;
+        }
+
+        .info-card h4 {
+            color: #4fc3f7;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .info-card ul {
+            color: #aaa;
+            margin-left: 20px;
+            font-size: 13px;
+        }
+
+        .info-card li {
+            margin-bottom: 5px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .comparison-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .comparison-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .comparison-card.bert { border-color: #66bb6a; }
+        .comparison-card.gpt { border-color: #ffa726; }
+        .comparison-card.padding { border-color: #9e9e9e; }
+        .comparison-card.prefix { border-color: #ab47bc; }
+        .comparison-card.local { border-color: #26c6da; }
+        .comparison-card.sparse { border-color: #ec407a; }
+
+        .comparison-card h4 {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .comparison-card.bert h4 { color: #66bb6a; }
+        .comparison-card.gpt h4 { color: #ffa726; }
+        .comparison-card.padding h4 { color: #9e9e9e; }
+        .comparison-card.prefix h4 { color: #ab47bc; }
+        .comparison-card.local h4 { color: #26c6da; }
+        .comparison-card.sparse h4 { color: #ec407a; }
+
+        .comparison-card p {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .comparison-card .models {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .mini-matrix {
+            display: grid;
+            grid-template-columns: repeat(5, 18px);
+            gap: 1px;
+            margin: 10px auto;
+            width: fit-content;
+        }
+
+        .mini-cell {
+            width: 18px;
+            height: 18px;
+            border-radius: 2px;
+            font-size: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mini-cell.on { background: rgba(102, 187, 106, 0.6); }
+        .mini-cell.off { background: rgba(239, 83, 80, 0.3); }
+
+        .slider-container {
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .slider-container label {
+            display: block;
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .slider-container input[type="range"] {
+            width: 150px;
+        }
+
+        .slider-value {
+            color: #4fc3f7;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎭 Types de Masques d'Attention</h1>
+    <p class="subtitle">Cliquez sur un type de masque, puis sur un mot pour voir ce qu'il peut "regarder"</p>
+
+    <div class="container">
+        <div class="mode-selector">
+            <button class="mode-btn bert active" onclick="setMode('bert')">
+                🟢 Bidirectionnel (BERT)
+            </button>
+            <button class="mode-btn gpt" onclick="setMode('gpt')">
+                🟠 Causal (GPT)
+            </button>
+            <button class="mode-btn padding" onclick="setMode('padding')">
+                ⚫ Padding
+            </button>
+            <button class="mode-btn prefix" onclick="setMode('prefix')">
+                🟣 Prefix (T5)
+            </button>
+            <button class="mode-btn local" onclick="setMode('local')">
+                🔵 Local (Longformer)
+            </button>
+            <button class="mode-btn sparse" onclick="setMode('sparse')">
+                🔴 Sparse (BigBird)
+            </button>
+        </div>
+
+        <div class="main-content">
+            <!-- Phrase interactive -->
+            <div class="panel">
+                <h2 id="mode-title">Mode BERT - Attention Bidirectionnelle</h2>
+
+                <div class="sentence" id="sentence">
+                    <!-- Générée par JS -->
+                </div>
+
+                <p class="interactive-hint">👆 Cliquez sur un mot pour voir ce qu'il "regarde"</p>
+
+                <!-- Slider pour local/sparse -->
+                <div class="slider-container" id="window-slider" style="display: none;">
+                    <label>Taille de fenêtre : <span class="slider-value" id="window-value">2</span></label>
+                    <input type="range" min="1" max="3" value="2" onchange="updateWindow(this.value)">
+                </div>
+
+                <div class="explanation" id="word-explanation">
+                    <h3>Sélectionnez un mot</h3>
+                    <p>Cliquez sur un mot ci-dessus pour voir quels autres mots il peut "regarder" dans le mécanisme d'attention.</p>
+                </div>
+
+                <div class="info-card" id="mode-info">
+                    <!-- Info sur le mode actuel -->
+                </div>
+            </div>
+
+            <!-- Matrice de masque -->
+            <div class="panel">
+                <h2>Matrice de Masque</h2>
+
+                <div class="matrix-container">
+                    <div class="matrix-label">Ligne = mot qui regarde | Colonne = mot regardé</div>
+                    <div class="matrix" id="mask-matrix">
+                        <!-- Générée par JS -->
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-box allowed"></div>
+                        <span>Peut regarder</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box blocked"></div>
+                        <span>Masqué</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparaison des masques -->
+        <h2 style="text-align: center; margin: 40px 0 20px; color: #4fc3f7;">📊 Tous les Types de Masques</h2>
+
+        <div class="comparison-grid">
+            <div class="comparison-card bert" onclick="setMode('bert')">
+                <h4>🟢 Bidirectionnel (BERT)</h4>
+                <div class="mini-matrix" id="mini-bert"></div>
+                <p><strong>Chaque mot voit tous les autres</strong></p>
+                <p>Usage : comprendre le contexte complet</p>
+                <div class="models">Modèles : BERT, RoBERTa, CamemBERT</div>
+            </div>
+
+            <div class="comparison-card gpt" onclick="setMode('gpt')">
+                <h4>🟠 Causal (GPT)</h4>
+                <div class="mini-matrix" id="mini-gpt"></div>
+                <p><strong>Ne voit que le passé</strong></p>
+                <p>Usage : génération de texte</p>
+                <div class="models">Modèles : GPT-2, GPT-3, LLaMA, Mistral</div>
+            </div>
+
+            <div class="comparison-card padding" onclick="setMode('padding')">
+                <h4>⚫ Padding</h4>
+                <div class="mini-matrix" id="mini-padding"></div>
+                <p><strong>Ignore les tokens &lt;pad&gt;</strong></p>
+                <p>Usage : batching de séquences de longueurs différentes</p>
+                <div class="models">Modèles : tous</div>
+            </div>
+
+            <div class="comparison-card prefix" onclick="setMode('prefix')">
+                <h4>🟣 Prefix (T5)</h4>
+                <div class="mini-matrix" id="mini-prefix"></div>
+                <p><strong>Prefix bidirectionnel + génération causale</strong></p>
+                <p>Usage : prompt fixe + génération</p>
+                <div class="models">Modèles : T5, PrefixLM, UL2</div>
+            </div>
+
+            <div class="comparison-card local" onclick="setMode('local')">
+                <h4>🔵 Local / Sliding Window</h4>
+                <div class="mini-matrix" id="mini-local"></div>
+                <p><strong>Ne voit que ±N tokens autour</strong></p>
+                <p>Usage : séquences très longues</p>
+                <div class="models">Modèles : Longformer, Mistral (sliding)</div>
+            </div>
+
+            <div class="comparison-card sparse" onclick="setMode('sparse')">
+                <h4>🔴 Sparse (BigBird)</h4>
+                <div class="mini-matrix" id="mini-sparse"></div>
+                <p><strong>Global + local + aléatoire</strong></p>
+                <p>Usage : documents très longs</p>
+                <div class="models">Modèles : BigBird, Longformer (global)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const wordsBase = ['le', 'chat', 'mange', 'la', 'souris'];
+        const wordsPadding = ['le', 'chat', 'mange', '<pad>', '<pad>'];
+        const wordsPrefix = ['[P]', '[P]', 'le', 'chat', 'mange'];
+
+        let currentMode = 'bert';
+        let selectedWord = null;
+        let windowSize = 2;
+
+        const modeConfig = {
+            bert: {
+                title: 'Mode BERT - Attention Bidirectionnelle',
+                color: '#66bb6a',
+                words: wordsBase,
+                info: `
+                    <h4>🟢 Attention Bidirectionnelle</h4>
+                    <ul>
+                        <li>Chaque mot peut voir <strong>tous</strong> les autres mots</li>
+                        <li>Pas de masque (ou masque rempli de 0)</li>
+                        <li>Utilisé pour <strong>comprendre</strong> le texte</li>
+                        <li>Ne peut pas générer (verrait la réponse)</li>
+                    </ul>
+                `
+            },
+            gpt: {
+                title: 'Mode GPT - Attention Causale',
+                color: '#ffa726',
+                words: wordsBase,
+                info: `
+                    <h4>🟠 Attention Causale (Triangle)</h4>
+                    <ul>
+                        <li>Chaque mot ne voit que les mots <strong>avant lui</strong></li>
+                        <li>Masque triangulaire inférieur</li>
+                        <li>Utilisé pour <strong>générer</strong> du texte</li>
+                        <li>Empêche de "tricher" en voyant le futur</li>
+                    </ul>
+                `
+            },
+            padding: {
+                title: 'Mode Padding - Ignorer les tokens vides',
+                color: '#9e9e9e',
+                words: wordsPadding,
+                info: `
+                    <h4>⚫ Masque de Padding</h4>
+                    <ul>
+                        <li>Les tokens &lt;pad&gt; sont <strong>ignorés</strong></li>
+                        <li>Utilisé pour le batching (séquences de longueurs différentes)</li>
+                        <li>Combiné avec causal ou bidirectionnel</li>
+                        <li>Évite que le padding influence l'attention</li>
+                    </ul>
+                `
+            },
+            prefix: {
+                title: 'Mode Prefix - T5 / PrefixLM',
+                color: '#ab47bc',
+                words: wordsPrefix,
+                info: `
+                    <h4>🟣 Attention Prefix</h4>
+                    <ul>
+                        <li>Prefix [P] : attention <strong>bidirectionnelle</strong></li>
+                        <li>Reste : attention <strong>causale</strong></li>
+                        <li>Le prompt peut voir tout le prompt</li>
+                        <li>La génération ne voit que le passé</li>
+                    </ul>
+                `
+            },
+            local: {
+                title: 'Mode Local - Sliding Window (Longformer)',
+                color: '#26c6da',
+                words: wordsBase,
+                info: `
+                    <h4>🔵 Attention Locale (Fenêtre Glissante)</h4>
+                    <ul>
+                        <li>Chaque mot ne voit que <strong>±${windowSize} tokens</strong> autour</li>
+                        <li>Complexité O(n) au lieu de O(n²)</li>
+                        <li>Permet de traiter des <strong>séquences très longues</strong></li>
+                        <li>Utilisé par Longformer, Mistral</li>
+                    </ul>
+                `
+            },
+            sparse: {
+                title: 'Mode Sparse - BigBird',
+                color: '#ec407a',
+                words: wordsBase,
+                info: `
+                    <h4>🔴 Attention Sparse</h4>
+                    <ul>
+                        <li><strong>Global</strong> : le 1er token voit tout et est vu par tous</li>
+                        <li><strong>Local</strong> : fenêtre ±1 token</li>
+                        <li><strong>Aléatoire</strong> : quelques connexions supplémentaires</li>
+                        <li>Complexité O(n) pour séquences très longues</li>
+                    </ul>
+                `
+            }
+        };
+
+        function setMode(mode) {
+            currentMode = mode;
+            selectedWord = null;
+
+            // Update buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.mode-btn.${mode}`).classList.add('active');
+
+            // Update title
+            const config = modeConfig[mode];
+            const title = document.getElementById('mode-title');
+            title.textContent = config.title;
+            title.style.color = config.color;
+
+            // Update info
+            document.getElementById('mode-info').innerHTML = config.info;
+
+            // Show/hide window slider (only for local mode)
+            document.getElementById('window-slider').style.display =
+                (mode === 'local') ? 'block' : 'none';
+
+            // Build sentence and matrix
+            buildSentence();
+            buildMatrix();
+            resetExplanation();
+        }
+
+        function buildSentence() {
+            const sentence = document.getElementById('sentence');
+            const words = modeConfig[currentMode].words;
+            sentence.innerHTML = '';
+
+            words.forEach((word, i) => {
+                const div = document.createElement('div');
+                div.className = 'word';
+                div.dataset.idx = i;
+                div.textContent = word;
+                div.onclick = () => selectWord(i);
+
+                // Special styling
+                if (word === '<pad>') {
+                    div.classList.add('pad-token');
+                } else if (word === '[P]') {
+                    div.classList.add('prefix-token');
+                } else if (currentMode === 'sparse' && (i === 0 || i === words.length - 1)) {
+                    div.classList.add('global-token');
+                }
+
+                sentence.appendChild(div);
+            });
+        }
+
+        function canSee(mode, from, to, words) {
+            const n = words.length;
+
+            switch (mode) {
+                case 'bert':
+                    return true;
+
+                case 'gpt':
+                    return to <= from;
+
+                case 'padding':
+                    // Causal + ignore padding
+                    if (words[to] === '<pad>') return false;
+                    if (words[from] === '<pad>') return false;
+                    return to <= from;
+
+                case 'prefix':
+                    // Prefix tokens (indices 0, 1) are bidirectional among themselves
+                    // and visible to all
+                    // Generation tokens (2+) are causal
+                    const prefixLen = 2;
+                    if (to < prefixLen) return true; // Prefix always visible
+                    if (from < prefixLen) return to < prefixLen; // Prefix only sees prefix
+                    return to <= from; // Causal for generation
+
+                case 'local':
+                    return Math.abs(from - to) <= windowSize;
+
+                case 'sparse':
+                    // Global tokens (only first token for demo)
+                    if (to === 0) return true;
+                    if (from === 0) return true;
+                    // Local window (use smaller window: 1)
+                    if (Math.abs(from - to) <= 1) return true;
+                    // Random (sparse pattern - less connections)
+                    if (from === 2 && to === 4) return true; // One random connection
+                    return false;
+
+                default:
+                    return true;
+            }
+        }
+
+        function buildMatrix() {
+            const matrix = document.getElementById('mask-matrix');
+            const words = modeConfig[currentMode].words;
+            matrix.innerHTML = '';
+            matrix.style.gridTemplateColumns = `repeat(${words.length + 1}, 42px)`;
+
+            // Header row
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'matrix-cell header';
+            emptyCell.textContent = '';
+            matrix.appendChild(emptyCell);
+
+            words.forEach(word => {
+                const cell = document.createElement('div');
+                cell.className = 'matrix-cell header';
+                cell.textContent = word.length > 5 ? word.slice(0, 4) + '..' : word;
+                matrix.appendChild(cell);
+            });
+
+            // Data rows
+            words.forEach((rowWord, i) => {
+                const headerCell = document.createElement('div');
+                headerCell.className = 'matrix-cell header';
+                headerCell.textContent = rowWord.length > 5 ? rowWord.slice(0, 4) + '..' : rowWord;
+                matrix.appendChild(headerCell);
+
+                words.forEach((colWord, j) => {
+                    const cell = document.createElement('div');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+
+                    const allowed = canSee(currentMode, i, j, words);
+                    cell.className = `matrix-cell ${allowed ? 'allowed' : 'blocked'}`;
+                    cell.textContent = allowed ? '✓' : '✗';
+
+                    matrix.appendChild(cell);
+                });
+            });
+        }
+
+        function selectWord(idx) {
+            selectedWord = idx;
+            const words = modeConfig[currentMode].words;
+            const wordElements = document.querySelectorAll('.word');
+
+            // Reset all words
+            wordElements.forEach(el => {
+                el.classList.remove('selected', 'visible', 'hidden');
+            });
+
+            // Mark selected
+            wordElements[idx].classList.add('selected');
+
+            // Mark visible/hidden
+            wordElements.forEach((el, i) => {
+                if (i === idx) return;
+                const canSeeIt = canSee(currentMode, idx, i, words);
+                el.classList.add(canSeeIt ? 'visible' : 'hidden');
+            });
+
+            // Highlight matrix row
+            document.querySelectorAll('.matrix-cell').forEach(cell => {
+                cell.classList.remove('highlight');
+                if (cell.dataset.row == idx) {
+                    cell.classList.add('highlight');
+                }
+            });
+
+            updateExplanation(idx);
+        }
+
+        function updateExplanation(idx) {
+            const words = modeConfig[currentMode].words;
+            const word = words[idx];
+            const explanation = document.getElementById('word-explanation');
+
+            const visible = [];
+            const hidden = [];
+
+            words.forEach((w, i) => {
+                if (canSee(currentMode, idx, i, words)) {
+                    visible.push(w);
+                } else {
+                    hidden.push(w);
+                }
+            });
+
+            explanation.innerHTML = `
+                <h3>"${word}" regarde :</h3>
+                <p>
+                    <span class="highlight-green">✓ Peut voir :</span> ${visible.length > 0 ? visible.join(', ') : 'aucun'}
+                </p>
+                <p>
+                    <span class="highlight-red">✗ Ne peut pas voir :</span> ${hidden.length > 0 ? hidden.join(', ') : 'aucun'}
+                </p>
+            `;
+        }
+
+        function resetExplanation() {
+            document.getElementById('word-explanation').innerHTML = `
+                <h3>Sélectionnez un mot</h3>
+                <p>Cliquez sur un mot ci-dessus pour voir quels autres mots il peut "regarder".</p>
+            `;
+        }
+
+        function updateWindow(value) {
+            windowSize = parseInt(value);
+            document.getElementById('window-value').textContent = value;
+
+            // Update info text
+            const config = modeConfig[currentMode];
+            if (currentMode === 'local') {
+                config.info = `
+                    <h4>🔵 Attention Locale (Fenêtre Glissante)</h4>
+                    <ul>
+                        <li>Chaque mot ne voit que <strong>±${windowSize} tokens</strong> autour</li>
+                        <li>Complexité O(n) au lieu de O(n²)</li>
+                        <li>Permet de traiter des <strong>séquences très longues</strong></li>
+                        <li>Utilisé par Longformer, Mistral</li>
+                    </ul>
+                `;
+            }
+            document.getElementById('mode-info').innerHTML = config.info;
+
+            buildMatrix();
+            if (selectedWord !== null) {
+                selectWord(selectedWord);
+            }
+        }
+
+        function buildMiniMatrix(containerId, mode) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            const words = mode === 'padding' ? wordsPadding :
+                          mode === 'prefix' ? wordsPrefix : wordsBase;
+
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 5; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = `mini-cell ${canSee(mode, i, j, words) ? 'on' : 'off'}`;
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        // Initialize
+        setMode('bert');
+
+        // Build mini matrices for comparison
+        buildMiniMatrix('mini-bert', 'bert');
+        buildMiniMatrix('mini-gpt', 'gpt');
+        buildMiniMatrix('mini-padding', 'padding');
+        buildMiniMatrix('mini-prefix', 'prefix');
+        buildMiniMatrix('mini-local', 'local');
+        buildMiniMatrix('mini-sparse', 'sparse');
+    </script>
+</body>
+</html>

@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture T5/BART - Encodeur-Décodeur</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 15px;
+            color: #fff;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+            color: #26c6da;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .config-display {
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .config-display code {
+            color: #26c6da;
+            background: rgba(38, 198, 218, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 500px 1fr;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Architecture Panel */
+        .arch-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .arch-panel h2 {
+            color: #26c6da;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .architecture {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        .encoder-side, .decoder-side {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .side-title {
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+        }
+
+        .encoder-side .side-title {
+            background: rgba(102, 187, 106, 0.3);
+            color: #66bb6a;
+            border: 2px solid #66bb6a;
+        }
+
+        .decoder-side .side-title {
+            background: rgba(255, 152, 0, 0.3);
+            color: #ffa726;
+            border: 2px solid #ffa726;
+        }
+
+        .arch-block {
+            width: 180px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .arch-block:hover {
+            transform: scale(1.03);
+            z-index: 10;
+        }
+
+        .arch-block.active {
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        /* Encoder blocks */
+        .encoder-stack {
+            background: linear-gradient(135deg, #66bb6a, #43a047);
+            border: 2px solid #66bb6a;
+            width: auto;
+            padding: 12px;
+        }
+
+        .encoder-block {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid #81c784;
+            border-radius: 8px;
+            padding: 6px;
+            min-width: 130px;
+        }
+
+        .encoder-block-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #81c784;
+            font-size: 11px;
+        }
+
+        /* Decoder blocks */
+        .decoder-stack {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border: 2px solid #ff9800;
+            width: auto;
+            padding: 12px;
+        }
+
+        .decoder-block {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid #ffb74d;
+            border-radius: 8px;
+            padding: 6px;
+            min-width: 130px;
+        }
+
+        .decoder-block-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #ffb74d;
+            font-size: 11px;
+        }
+
+        .sub-block {
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            padding: 5px;
+            margin: 3px 0;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .sub-block:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.02);
+        }
+
+        .sub-block.active {
+            background: rgba(255,255,255,0.3);
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            transform: scale(1.03);
+        }
+
+        .sub-block.attention { border-left: 3px solid #4fc3f7; }
+        .sub-block.attention.active { box-shadow: 0 0 12px #4fc3f7; }
+        .sub-block.cross-attention { border-left: 3px solid #ba68c8; }
+        .sub-block.cross-attention.active { box-shadow: 0 0 12px #ba68c8; }
+        .sub-block.ffn { border-left: 3px solid #66bb6a; }
+        .sub-block.ffn.active { box-shadow: 0 0 12px #66bb6a; }
+        .sub-block.norm { border-left: 3px solid #607d8b; }
+        .sub-block.norm.active { box-shadow: 0 0 12px #607d8b; }
+
+        .sub-block .dimensions {
+            font-size: 9px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .embedding-block {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            border: 2px solid #2196f3;
+        }
+
+        .pos-encoding {
+            background: linear-gradient(135deg, #00bcd4, #0097a7);
+            border: 2px solid #00bcd4;
+        }
+
+        .input-block {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+            border: 2px solid #4caf50;
+        }
+
+        .output-block {
+            background: linear-gradient(135deg, #e91e63, #c2185b);
+            border: 2px solid #e91e63;
+        }
+
+        .lm-head {
+            background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+            border: 2px solid #9c27b0;
+        }
+
+        .layer-norm {
+            background: linear-gradient(135deg, #607d8b, #455a64);
+            border: 2px solid #607d8b;
+            width: 140px;
+        }
+
+        .arrow {
+            width: 2px;
+            height: 12px;
+            background: #666;
+            position: relative;
+        }
+
+        .arrow::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -4px;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 6px solid #666;
+        }
+
+        .plus-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        .dim-label {
+            font-size: 9px;
+            color: #666;
+            text-align: center;
+            padding: 2px 6px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+        }
+
+        .dimensions {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 3px;
+        }
+
+        /* Cross-attention arrow */
+        /* Cross-attention link arrow */
+        .cross-link {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            z-index: 100;
+        }
+
+        .cross-link-line {
+            width: 40px;
+            height: 4px;
+            background: linear-gradient(90deg, #66bb6a, #ba68c8);
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(186, 104, 200, 0.5);
+        }
+
+        .cross-link-arrow {
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 12px solid #ba68c8;
+            filter: drop-shadow(0 0 4px rgba(186, 104, 200, 0.5));
+        }
+
+        .cross-link-label {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            font-weight: bold;
+            color: #ba68c8;
+            background: rgba(26, 26, 46, 0.9);
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        /* Right Panel - Calculations */
+        .calc-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .calc-title {
+            color: #26c6da;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .calc-title .formula {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            color: #4fc3f7;
+            font-size: 14px;
+        }
+
+        .calc-description {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .calc-description strong { color: #fff; }
+
+        .matrix-section {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .matrix-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .matrix-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .matrix-label .dims {
+            color: #666;
+            font-size: 10px;
+        }
+
+        .matrix {
+            display: grid;
+            gap: 2px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px;
+            border-radius: 6px;
+            border: 2px solid #333;
+        }
+
+        .matrix.input { border-color: #4caf50; }
+        .matrix.encoder { border-color: #66bb6a; }
+        .matrix.decoder { border-color: #ffa726; }
+        .matrix.result { border-color: #ff9800; }
+        .matrix.cross { border-color: #ba68c8; }
+        .matrix.mask { border-color: #e91e63; }
+
+        .matrix-cell {
+            width: 38px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-family: monospace;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+        }
+
+        .matrix-cell.negative { color: #ef5350; }
+        .matrix-cell.positive { color: #66bb6a; }
+        .matrix-cell.zero { color: #888; }
+        .matrix-cell.masked { background: rgba(239, 83, 80, 0.3); color: #ef5350; }
+
+        .operator {
+            font-size: 18px;
+            color: #666;
+            padding: 0 3px;
+        }
+
+        .matrix-with-labels {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .row-labels {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .row-label {
+            height: 22px;
+            display: flex;
+            align-items: center;
+            font-size: 9px;
+            color: #666;
+        }
+
+        .property-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(102, 187, 106, 0.2);
+            border: 1px solid #66bb6a;
+            border-radius: 15px;
+            font-size: 10px;
+            color: #66bb6a;
+            margin: 3px 3px 3px 0;
+        }
+
+        .property-badge.warning {
+            background: rgba(255, 152, 0, 0.2);
+            border-color: #ffa726;
+            color: #ffa726;
+        }
+
+        .property-badge.info {
+            background: rgba(79, 195, 247, 0.2);
+            border-color: #4fc3f7;
+            color: #4fc3f7;
+        }
+
+        .property-badge.pink {
+            background: rgba(233, 30, 99, 0.2);
+            border-color: #e91e63;
+            color: #e91e63;
+        }
+
+        .property-badge.purple {
+            background: rgba(186, 104, 200, 0.2);
+            border-color: #ba68c8;
+            color: #ba68c8;
+        }
+
+        .properties { margin: 8px 0; }
+
+        .info-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 12px 0;
+            border-left: 3px solid #26c6da;
+        }
+
+        .info-box.success { border-left-color: #66bb6a; }
+        .info-box.warning { border-left-color: #e91e63; }
+        .info-box.info { border-left-color: #4fc3f7; }
+        .info-box.purple { border-left-color: #ba68c8; }
+
+        .info-box h4 {
+            color: #26c6da;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .info-box.success h4 { color: #66bb6a; }
+        .info-box.warning h4 { color: #e91e63; }
+        .info-box.info h4 { color: #4fc3f7; }
+        .info-box.purple h4 { color: #ba68c8; }
+
+        .info-box p, .info-box li {
+            color: #aaa;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .info-box ul { margin-left: 15px; }
+
+        .info-box code {
+            background: rgba(255,255,255,0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: #4fc3f7;
+            font-family: monospace;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border: 2px solid #26c6da;
+            background: transparent;
+            color: #26c6da;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        .nav-btn:hover:not(:disabled) { background: rgba(38, 198, 218, 0.2); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .step-counter {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+
+        .step-counter .num {
+            color: #26c6da;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Mask visualization */
+        .mask-grid {
+            display: inline-grid;
+            gap: 2px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px;
+            border-radius: 6px;
+        }
+
+        .mask-cell {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .mask-cell.see { background: rgba(102, 187, 106, 0.5); color: #fff; }
+        .mask-cell.no-see { background: rgba(239, 83, 80, 0.3); color: #666; }
+
+        .highlight { color: #26c6da; font-weight: bold; }
+        .highlight-blue { color: #4fc3f7; font-weight: bold; }
+        .highlight-green { color: #66bb6a; font-weight: bold; }
+        .highlight-pink { color: #e91e63; font-weight: bold; }
+        .highlight-purple { color: #ba68c8; font-weight: bold; }
+        .highlight-orange { color: #ffa726; font-weight: bold; }
+
+        /* Comparison tables */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 11px;
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+
+        .comparison-table th {
+            background: rgba(38, 198, 218, 0.2);
+            color: #26c6da;
+        }
+
+        .comparison-table td {
+            color: #aaa;
+        }
+
+        /* Flow diagram */
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .flow-box {
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        .flow-box.encoder {
+            background: rgba(102, 187, 106, 0.2);
+            border: 2px solid #66bb6a;
+            color: #66bb6a;
+        }
+
+        .flow-box.decoder {
+            background: rgba(255, 152, 0, 0.2);
+            border: 2px solid #ffa726;
+            color: #ffa726;
+        }
+
+        .flow-box.cross {
+            background: rgba(186, 104, 200, 0.2);
+            border: 2px solid #ba68c8;
+            color: #ba68c8;
+        }
+
+        .flow-arrow {
+            font-size: 20px;
+            color: #666;
+        }
+
+        /* Use cases */
+        .use-case-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .use-case {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .use-case-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .use-case-title {
+            color: #fff;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .use-case-desc {
+            color: #888;
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #26c6da;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h3 {
+            color: #26c6da;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .modal th, .modal td {
+            padding: 8px 10px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .modal th {
+            color: #26c6da;
+            font-weight: bold;
+        }
+
+        .modal td {
+            color: #ccc;
+        }
+
+        .modal td:first-child {
+            text-align: left;
+            color: #888;
+        }
+
+        .modal .close-btn {
+            display: block;
+            margin: 15px auto 0;
+            padding: 8px 20px;
+            background: #26c6da;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .modal .close-btn:hover {
+            background: #4dd0e1;
+        }
+
+        .compare-btn {
+            background: rgba(38, 198, 218, 0.2);
+            border: 1px solid #26c6da;
+            color: #26c6da;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.3s;
+        }
+
+        .compare-btn:hover {
+            background: rgba(38, 198, 218, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <h1>Architecture T5/BART - Encodeur-Décodeur</h1>
+    <p class="subtitle">Seq2Seq avec Cross-Attention : traduction, résumé, question-réponse</p>
+
+    <div class="config-display">
+        <code>vocab=10</code> |
+        <code>embed=6</code> |
+        <code>heads=2</code> |
+        <code>layers=1</code> |
+        <code>src="Le chat"</code> |
+        <code>tgt="The cat"</code>
+        <button class="compare-btn" onclick="showModal()">📊 Modèles réels</button>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal" onclick="hideModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3>📊 Dimensions des modèles Encodeur-Décodeur</h3>
+            <table>
+                <tr>
+                    <th>Paramètre</th>
+                    <th>Nous</th>
+                    <th>T5-Base</th>
+                    <th>T5-Large</th>
+                    <th>BART-Large</th>
+                </tr>
+                <tr>
+                    <td>vocab</td>
+                    <td style="color:#4fc3f7;">10</td>
+                    <td>32 128</td>
+                    <td>32 128</td>
+                    <td>50 265</td>
+                </tr>
+                <tr>
+                    <td>embed (d_model)</td>
+                    <td style="color:#4fc3f7;">6</td>
+                    <td>768</td>
+                    <td>1 024</td>
+                    <td>1 024</td>
+                </tr>
+                <tr>
+                    <td>heads</td>
+                    <td style="color:#4fc3f7;">2</td>
+                    <td>12</td>
+                    <td>16</td>
+                    <td>16</td>
+                </tr>
+                <tr>
+                    <td>encoder layers</td>
+                    <td style="color:#4fc3f7;">1</td>
+                    <td>12</td>
+                    <td>24</td>
+                    <td>12</td>
+                </tr>
+                <tr>
+                    <td>decoder layers</td>
+                    <td style="color:#4fc3f7;">1</td>
+                    <td>12</td>
+                    <td>24</td>
+                    <td>12</td>
+                </tr>
+                <tr>
+                    <td>FFN hidden</td>
+                    <td style="color:#4fc3f7;">12</td>
+                    <td>3 072</td>
+                    <td>4 096</td>
+                    <td>4 096</td>
+                </tr>
+                <tr>
+                    <td>params total</td>
+                    <td style="color:#4fc3f7;">~1k</td>
+                    <td>220 M</td>
+                    <td>770 M</td>
+                    <td>400 M</td>
+                </tr>
+            </table>
+            <button class="close-btn" onclick="hideModal()">Fermer</button>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <!-- Left: Architecture -->
+        <div class="arch-panel">
+            <h2>Architecture T5/BART</h2>
+            <div class="architecture" style="position: relative;">
+                <!-- Encoder Side -->
+                <div class="encoder-side">
+                    <div class="side-title">ENCODEUR</div>
+
+                    <div class="dim-label">↑ (src_len, embed) = (2, 6)</div>
+
+                    <div class="arch-block encoder-stack" data-step="4" onclick="showStep(4)">
+                        <div class="encoder-block">
+                            <div class="encoder-block-title">Encodeur ×N</div>
+                            <div class="sub-block norm" data-step="7" onclick="event.stopPropagation(); showStep(7)">Add & Norm</div>
+                            <div class="sub-block ffn" data-step="6" onclick="event.stopPropagation(); showStep(6)">FFN</div>
+                            <div class="sub-block norm" data-step="5" onclick="event.stopPropagation(); showStep(5)">Add & Norm</div>
+                            <div class="sub-block attention" data-step="4" onclick="event.stopPropagation(); showStep(4)">
+                                Self-Attention
+                                <div class="dimensions">bidirectionnelle</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dim-label">↑ (2, 6)</div>
+
+                    <div class="arrow"></div>
+
+                    <div class="plus-circle">+</div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <div class="arch-block embedding-block" style="width: 80px; font-size: 10px;" data-step="1" onclick="showStep(1)">
+                            Embed
+                        </div>
+                        <div class="arch-block pos-encoding" style="width: 80px; font-size: 10px;" data-step="2" onclick="showStep(2)">
+                            Pos Enc
+                        </div>
+                    </div>
+
+                    <div class="arrow"></div>
+
+                    <div class="arch-block input-block" data-step="0" onclick="showStep(0)">
+                        Source
+                        <div class="dimensions">"Le chat" → [1, 2]</div>
+                    </div>
+                </div>
+
+                <!-- Cross-attention link arrow -->
+                <div class="cross-link" style="top: 200px; left: 50%; transform: translateX(-50%);">
+                    <div class="cross-link-label">K, V</div>
+                    <div class="cross-link-line"></div>
+                    <div class="cross-link-arrow"></div>
+                </div>
+
+                <!-- Decoder Side -->
+                <div class="decoder-side">
+                    <div class="side-title">DÉCODEUR</div>
+
+                    <div class="arch-block output-block" data-step="15" onclick="showStep(15)">
+                        Token Prédit
+                        <div class="dimensions">sampling / argmax</div>
+                    </div>
+
+                    <div class="arrow"></div>
+
+                    <div class="arch-block lm-head" data-step="14" onclick="showStep(14)">
+                        LM Head + Softmax
+                        <div class="dimensions">→ probabilités</div>
+                    </div>
+                    <div class="dim-label">↑ (tgt_len, vocab)</div>
+
+                    <div class="arrow"></div>
+
+                    <div class="arch-block layer-norm" data-step="13" onclick="showStep(13)">
+                        LayerNorm Final
+                    </div>
+
+                    <div class="arrow"></div>
+
+                    <div class="arch-block decoder-stack" data-step="8" onclick="showStep(8)" style="position: relative;">
+                        <div class="decoder-block">
+                            <div class="decoder-block-title">Décodeur ×N</div>
+                            <div class="sub-block norm" data-step="12" onclick="event.stopPropagation(); showStep(12)">Add & Norm</div>
+                            <div class="sub-block ffn" data-step="11" onclick="event.stopPropagation(); showStep(11)">FFN</div>
+                            <div class="sub-block norm" data-step="10" onclick="event.stopPropagation(); showStep(10)">Add & Norm</div>
+                            <div class="sub-block cross-attention" data-step="9" onclick="event.stopPropagation(); showStep(9)">
+                                <strong style="color:#ba68c8;">Cross-Attention</strong>
+                                <div class="dimensions">Q: décodeur, K/V: encodeur</div>
+                            </div>
+                            <div class="sub-block norm" data-step="8" onclick="event.stopPropagation(); showStep(8)">Add & Norm</div>
+                            <div class="sub-block attention" data-step="8" onclick="event.stopPropagation(); showStep(8)">
+                                Self-Attention
+                                <div class="dimensions">+ masque causal</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dim-label">↑ (2, 6)</div>
+
+                    <div class="arrow"></div>
+
+                    <div class="plus-circle">+</div>
+
+                    <div style="display: flex; gap: 8px;">
+                        <div class="arch-block embedding-block" style="width: 80px; font-size: 10px;" data-step="3" onclick="showStep(3)">
+                            Embed
+                        </div>
+                        <div class="arch-block pos-encoding" style="width: 80px; font-size: 10px;" data-step="3" onclick="showStep(3)">
+                            Pos Enc
+                        </div>
+                    </div>
+
+                    <div class="arrow"></div>
+
+                    <div class="arch-block input-block" style="background: linear-gradient(135deg, #ff9800, #f57c00); border-color: #ff9800;" data-step="3" onclick="showStep(3)">
+                        Target (décalé)
+                        <div class="dimensions">"&lt;s&gt; The" → [0, 5]</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Calculations -->
+        <div class="calc-panel" id="calc-panel"></div>
+    </div>
+
+    <script>
+        // Modal functions
+        function showModal() {
+            document.getElementById('modal').classList.add('show');
+        }
+        function hideModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideModal();
+        });
+
+        // Config
+        const srcTokens = ['Le', 'chat'];
+        const srcIds = [1, 2];
+        const tgtTokens = ['<s>', 'The'];
+        const tgtIds = [0, 5];
+        const vocab = ['<s>', 'Le', 'chat', 'The', 'cat', 'the', 'a', 'is', '</s>', '<pad>'];
+        const srcLen = 2;
+        const tgtLen = 2;
+        const embedDim = 6;
+        const vocabSize = 10;
+        const numHeads = 2;
+        const headDim = embedDim / numHeads;
+
+        // Embedding matrices (shared or separate depending on model)
+        const E = [];
+        for (let i = 0; i < vocabSize; i++) {
+            E[i] = [];
+            for (let j = 0; j < embedDim; j++) {
+                E[i][j] = Math.sin(i * 3 + j * 2) * 0.5 + Math.cos(i + j * 4) * 0.3;
+            }
+        }
+
+        const X_src_emb = srcIds.map(id => E[id].slice());
+        const X_tgt_emb = tgtIds.map(id => E[id].slice());
+
+        // Positional Encoding
+        function makePE(len) {
+            const PE = [];
+            for (let pos = 0; pos < len; pos++) {
+                PE[pos] = [];
+                for (let i = 0; i < embedDim; i++) {
+                    PE[pos][i] = i % 2 === 0
+                        ? Math.sin(pos / Math.pow(10000, i / embedDim))
+                        : Math.cos(pos / Math.pow(10000, (i-1) / embedDim));
+                }
+            }
+            return PE;
+        }
+
+        const PE_src = makePE(srcLen);
+        const PE_tgt = makePE(tgtLen);
+
+        const X_src = X_src_emb.map((row, i) => row.map((v, j) => v + PE_src[i][j]));
+        const X_tgt = X_tgt_emb.map((row, i) => row.map((v, j) => v + PE_tgt[i][j]));
+
+        // Weights
+        function makeWeights(seed) {
+            const W = [];
+            for (let i = 0; i < embedDim; i++) {
+                W[i] = [];
+                for (let j = 0; j < embedDim; j++) {
+                    W[i][j] = Math.sin(i * seed + j * (seed + 1)) * 0.3;
+                }
+            }
+            return W;
+        }
+
+        // Encoder weights
+        const W_Q_enc = makeWeights(2);
+        const W_K_enc = makeWeights(3);
+        const W_V_enc = makeWeights(4);
+        const W_O_enc = makeWeights(5);
+
+        // Decoder self-attention weights
+        const W_Q_dec = makeWeights(6);
+        const W_K_dec = makeWeights(7);
+        const W_V_dec = makeWeights(8);
+        const W_O_dec = makeWeights(9);
+
+        // Cross-attention weights
+        const W_Q_cross = makeWeights(10);
+        const W_K_cross = makeWeights(11);
+        const W_V_cross = makeWeights(12);
+        const W_O_cross = makeWeights(13);
+
+        // FFN weights
+        const W_ffn1 = [], b_ffn1 = [], W_ffn2 = [], b_ffn2 = [];
+        for (let i = 0; i < 6; i++) {
+            W_ffn1[i] = [];
+            for (let j = 0; j < 12; j++) W_ffn1[i][j] = Math.sin(i * 7 + j * 3) * 0.3;
+        }
+        for (let j = 0; j < 12; j++) b_ffn1[j] = Math.cos(j * 5) * 0.1;
+        for (let i = 0; i < 12; i++) {
+            W_ffn2[i] = [];
+            for (let j = 0; j < 6; j++) W_ffn2[i][j] = Math.sin(i * 5 + j * 7) * 0.25;
+        }
+        for (let j = 0; j < 6; j++) b_ffn2[j] = Math.cos(j * 3) * 0.05;
+
+        // LM head (weight tying with embedding)
+        const W_lm = [];
+        for (let i = 0; i < embedDim; i++) {
+            W_lm[i] = [];
+            for (let j = 0; j < vocabSize; j++) W_lm[i][j] = E[j][i];
+        }
+
+        // Math functions
+        function matmul(A, B) {
+            return A.map((row, i) => B[0].map((_, j) => row.reduce((s, v, k) => s + v * B[k][j], 0)));
+        }
+        function transpose(A) { return A[0].map((_, i) => A.map(row => row[i])); }
+        function softmaxRows(A) {
+            return A.map(row => {
+                const max = Math.max(...row.filter(x => x !== -Infinity));
+                const exps = row.map(x => x === -Infinity ? 0 : Math.exp(x - max));
+                const sum = exps.reduce((a, b) => a + b, 0);
+                return exps.map(e => e / sum);
+            });
+        }
+        function addMatrices(A, B) { return A.map((row, i) => row.map((v, j) => v + B[i][j])); }
+        function layerNorm(A) {
+            return A.map(row => {
+                const mean = row.reduce((a, b) => a + b, 0) / row.length;
+                const variance = row.reduce((a, b) => a + (b - mean) ** 2, 0) / row.length;
+                const std = Math.sqrt(variance + 1e-5);
+                return row.map(x => (x - mean) / std);
+            });
+        }
+        function gelu(x) {
+            return 0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * Math.pow(x, 3))));
+        }
+        function applyGelu(A) { return A.map(row => row.map(x => gelu(x))); }
+        function linearBias(X, W, b) { return matmul(X, W).map(row => row.map((v, j) => v + b[j])); }
+        function applyCausalMask(scores) {
+            return scores.map((row, i) => row.map((v, j) => j > i ? -Infinity : v));
+        }
+
+        // === ENCODER COMPUTATION ===
+        const Q_enc = matmul(X_src, W_Q_enc);
+        const K_enc = matmul(X_src, W_K_enc);
+        const V_enc = matmul(X_src, W_V_enc);
+
+        const scale = Math.sqrt(headDim);
+        const scores_enc = matmul(Q_enc, transpose(K_enc)).map(row => row.map(v => v / scale));
+        // No mask for encoder (bidirectional)
+        const attention_enc = softmaxRows(scores_enc);
+        const attn_out_enc = matmul(attention_enc, V_enc);
+        const mh_out_enc = matmul(attn_out_enc, W_O_enc);
+
+        const afterAdd1_enc = addMatrices(X_src, mh_out_enc);
+        const afterNorm1_enc = layerNorm(afterAdd1_enc);
+
+        const ffn1_enc = linearBias(afterNorm1_enc, W_ffn1, b_ffn1);
+        const ffnGelu_enc = applyGelu(ffn1_enc);
+        const ffn2_enc = linearBias(ffnGelu_enc, W_ffn2, b_ffn2);
+
+        const afterAdd2_enc = addMatrices(afterNorm1_enc, ffn2_enc);
+        const encoder_output = layerNorm(afterAdd2_enc);
+
+        // === DECODER COMPUTATION ===
+        // Self-attention (causal)
+        const Q_dec = matmul(X_tgt, W_Q_dec);
+        const K_dec = matmul(X_tgt, W_K_dec);
+        const V_dec = matmul(X_tgt, W_V_dec);
+
+        const scores_dec = matmul(Q_dec, transpose(K_dec)).map(row => row.map(v => v / scale));
+        const scores_dec_masked = applyCausalMask(scores_dec);
+        const attention_dec = softmaxRows(scores_dec_masked);
+        const attn_out_dec = matmul(attention_dec, V_dec);
+        const mh_out_dec = matmul(attn_out_dec, W_O_dec);
+
+        const afterAdd1_dec = addMatrices(X_tgt, mh_out_dec);
+        const afterNorm1_dec = layerNorm(afterAdd1_dec);
+
+        // Cross-attention
+        const Q_cross = matmul(afterNorm1_dec, W_Q_cross);  // Q from decoder
+        const K_cross = matmul(encoder_output, W_K_cross);  // K from encoder
+        const V_cross = matmul(encoder_output, W_V_cross);  // V from encoder
+
+        const scores_cross = matmul(Q_cross, transpose(K_cross)).map(row => row.map(v => v / scale));
+        // No mask for cross-attention (can attend to all encoder positions)
+        const attention_cross = softmaxRows(scores_cross);
+        const attn_out_cross = matmul(attention_cross, V_cross);
+        const mh_out_cross = matmul(attn_out_cross, W_O_cross);
+
+        const afterAdd2_dec = addMatrices(afterNorm1_dec, mh_out_cross);
+        const afterNorm2_dec = layerNorm(afterAdd2_dec);
+
+        // FFN
+        const ffn1_dec = linearBias(afterNorm2_dec, W_ffn1, b_ffn1);
+        const ffnGelu_dec = applyGelu(ffn1_dec);
+        const ffn2_dec = linearBias(ffnGelu_dec, W_ffn2, b_ffn2);
+
+        const afterAdd3_dec = addMatrices(afterNorm2_dec, ffn2_dec);
+        const afterNorm3_dec = layerNorm(afterAdd3_dec);
+
+        const finalNorm = afterNorm3_dec;
+        const logits = matmul(finalNorm, W_lm);
+        const probs = softmaxRows(logits);
+
+        let currentStep = 0;
+
+        // Escape HTML special characters to prevent <s> from being interpreted as strikethrough
+        function escapeHtml(text) {
+            if (typeof text !== 'string') return text;
+            return text.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;');
+        }
+
+        function fmt(n) {
+            if (n === -Infinity) return '-∞';
+            const f = n.toFixed(2);
+            return f === '-0.00' ? '0.00' : f;
+        }
+        function cellClass(n) {
+            if (n === -Infinity) return 'masked';
+            return Math.abs(n) < 0.005 ? 'zero' : n < 0 ? 'negative' : 'positive';
+        }
+
+        function createMatrix(data, label, dims, type = '', rowLabels = null) {
+            const rows = data.length, cols = data[0].length;
+            let html = `<div class="matrix-container">`;
+            html += `<div class="matrix-label">${label} <span class="dims">${dims}</span></div>`;
+            html += `<div class="matrix-with-labels">`;
+            if (rowLabels) {
+                html += `<div class="row-labels">`;
+                rowLabels.forEach(l => html += `<div class="row-label">${escapeHtml(l)}</div>`);
+                html += `</div>`;
+            }
+            html += `<div class="matrix ${type}" style="grid-template-columns: repeat(${cols}, 38px);">`;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    html += `<div class="matrix-cell ${cellClass(data[i][j])}">${fmt(data[i][j])}</div>`;
+                }
+            }
+            html += `</div></div></div>`;
+            return html;
+        }
+
+        function createMask(size, causal = true) {
+            let html = `<div class="mask-grid" style="grid-template-columns: repeat(${size}, 24px);">`;
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const canSee = causal ? j <= i : true;
+                    html += `<div class="mask-cell ${canSee ? 'see' : 'no-see'}">${canSee ? '✓' : '✗'}</div>`;
+                }
+            }
+            return html + '</div>';
+        }
+
+        function createCrossAttentionMask(tgtSize, srcSize) {
+            let html = `<div class="mask-grid" style="grid-template-columns: repeat(${srcSize}, 24px);">`;
+            for (let i = 0; i < tgtSize; i++) {
+                for (let j = 0; j < srcSize; j++) {
+                    html += `<div class="mask-cell see">✓</div>`;
+                }
+            }
+            return html + '</div>';
+        }
+
+        const steps = [
+            // 0: Overview
+            {
+                title: 'Vue d\'ensemble',
+                formula: 'Encodeur → Cross-Attention → Décodeur',
+                content: () => `
+                    <div class="calc-description">T5/BART combine un <strong class="highlight-green">encodeur</strong> et un <strong class="highlight-orange">décodeur</strong> via la <strong class="highlight-purple">cross-attention</strong>.</div>
+
+                    <div class="flow-diagram">
+                        <div class="flow-box encoder">
+                            <strong>Encodeur</strong><br>
+                            <span style="font-size:10px;">Bidirectionnel</span>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box cross">
+                            <strong>K, V</strong><br>
+                            <span style="font-size:10px;">depuis encodeur</span>
+                        </div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box decoder">
+                            <strong>Décodeur</strong><br>
+                            <span style="font-size:10px;">Causal + Cross</span>
+                        </div>
+                    </div>
+
+                    <div class="info-box success">
+                        <h4>Encodeur (vert)</h4>
+                        <ul>
+                            <li>Traite la séquence <strong>source</strong> ("Le chat")</li>
+                            <li>Attention <strong>bidirectionnelle</strong> : chaque token voit tous les autres</li>
+                            <li>Produit des représentations contextualisées</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box warning" style="border-left-color:#ffa726;">
+                        <h4 style="color:#ffa726;">Décodeur (orange)</h4>
+                        <ul>
+                            <li>Génère la séquence <strong>cible</strong> ("The cat")</li>
+                            <li><strong>Self-attention causale</strong> : ne voit que les tokens précédents</li>
+                            <li><strong>Cross-attention</strong> : accède à l'encodeur</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box purple">
+                        <h4>Cross-Attention (violet)</h4>
+                        <p><strong>Q</strong> vient du décodeur, <strong>K</strong> et <strong>V</strong> de l'encodeur.</p>
+                        <p style="margin-top:5px;">C'est le "pont" qui permet au décodeur de "regarder" la source.</p>
+                    </div>
+
+                    <h4 style="color:#26c6da;margin:20px 0 10px;">Cas d'usage</h4>
+                    <div class="use-case-grid">
+                        <div class="use-case">
+                            <div class="use-case-icon">🌍</div>
+                            <div class="use-case-title">Traduction</div>
+                            <div class="use-case-desc">FR → EN, EN → FR</div>
+                        </div>
+                        <div class="use-case">
+                            <div class="use-case-icon">📝</div>
+                            <div class="use-case-title">Résumé</div>
+                            <div class="use-case-desc">Long → Court</div>
+                        </div>
+                        <div class="use-case">
+                            <div class="use-case-icon">❓</div>
+                            <div class="use-case-title">QA</div>
+                            <div class="use-case-desc">Question → Réponse</div>
+                        </div>
+                        <div class="use-case">
+                            <div class="use-case-icon">🔄</div>
+                            <div class="use-case-title">Paraphrase</div>
+                            <div class="use-case-desc">Reformulation</div>
+                        </div>
+                    </div>
+                `
+            },
+            // 1: Source embedding
+            {
+                title: 'Embedding Source (Encodeur)',
+                formula: 'X_src = E[src_ids]',
+                content: () => `
+                    <div class="calc-description">La séquence source est convertie en vecteurs denses.</div>
+                    <div class="matrix-section">
+                        ${srcTokens.map((t, i) => `<div style="text-align:center;padding:15px 25px;background:rgba(102,187,106,0.2);border:2px solid #66bb6a;border-radius:10px;">
+                            <div style="color:#66bb6a;font-weight:bold;font-size:18px;">"${escapeHtml(t)}"</div>
+                            <div style="color:#888;font-size:11px;margin-top:5px;">id = ${srcIds[i]}</div>
+                        </div>`).join('')}
+                    </div>
+                    <div class="matrix-section">
+                        ${createMatrix(X_src_emb, 'X_src_emb', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                    </div>
+                    <div class="info-box info">
+                        <h4>Vocabulaire partagé ou séparé ?</h4>
+                        <p><strong>T5</strong> : vocabulaire unique (SentencePiece) pour source et cible.</p>
+                        <p><strong>BART</strong> : même chose (BPE).</p>
+                        <p style="margin-top:5px;">Pour la traduction multilingue, un seul vocabulaire couvre toutes les langues !</p>
+                    </div>
+                `
+            },
+            // 2: Source positional encoding
+            {
+                title: 'Positional Encoding Source',
+                formula: 'X_src = X_src_emb + PE',
+                content: () => `
+                    <div class="calc-description">Ajout de l'information de position pour l'encodeur.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(X_src_emb, 'X_src_emb', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(PE_src, 'PE', `(${srcLen}, ${embedDim})`, 'result', ['pos0', 'pos1'])}
+                    </div>
+                    <div class="matrix-section">
+                        <span class="operator">=</span>
+                        ${createMatrix(X_src, 'X_src', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                    </div>
+                    <div class="info-box">
+                        <h4>T5 vs BART : Positional Encoding</h4>
+                        <ul>
+                            <li><strong>T5</strong> : utilise des <em>relative position embeddings</em> (dans l'attention)</li>
+                            <li><strong>BART</strong> : embeddings de position <em>appris</em> (comme GPT-2)</li>
+                        </ul>
+                        <p style="margin-top:5px;">Ici on montre la version sinusoïdale pour simplifier.</p>
+                    </div>
+                `
+            },
+            // 3: Target embedding
+            {
+                title: 'Embedding Target (Décodeur)',
+                formula: 'X_tgt = E[tgt_ids]',
+                content: () => `
+                    <div class="calc-description">La séquence cible (décalée à droite) entre dans le décodeur.</div>
+                    <div class="matrix-section">
+                        ${tgtTokens.map((t, i) => `<div style="text-align:center;padding:15px 25px;background:rgba(255,152,0,0.2);border:2px solid #ffa726;border-radius:10px;">
+                            <div style="color:#ffa726;font-weight:bold;font-size:18px;">"${escapeHtml(t)}"</div>
+                            <div style="color:#888;font-size:11px;margin-top:5px;">id = ${tgtIds[i]}</div>
+                        </div>`).join('')}
+                    </div>
+                    <div class="matrix-section">
+                        ${createMatrix(X_tgt, 'X_tgt', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                    </div>
+                    <div class="info-box warning">
+                        <h4>Décalage à droite (Teacher Forcing)</h4>
+                        <p>À l'entraînement, on donne au décodeur la cible <strong>décalée</strong> :</p>
+                        <p style="margin-top:5px;"><code>["&lt;s&gt;", "The", "cat"]</code> pour prédire <code>["The", "cat", "&lt;/s&gt;"]</code></p>
+                        <p style="margin-top:5px;">Ainsi chaque position prédit le <em>prochain</em> token.</p>
+                    </div>
+                `
+            },
+            // 4: Encoder self-attention
+            {
+                title: 'Self-Attention Encodeur',
+                formula: 'Attn = softmax(QK^T/√d) × V',
+                content: () => `
+                    <div class="calc-description">L'encodeur utilise une attention <strong class="highlight-green">bidirectionnelle</strong> : chaque token voit <em>tous</em> les autres.</div>
+
+                    <div class="matrix-section">
+                        ${createMatrix(Q_enc, 'Q', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                        ${createMatrix(K_enc, 'K', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                        ${createMatrix(V_enc, 'V', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                    </div>
+
+                    <h4 style="color:#66bb6a;margin:15px 0 10px;">Scores (pas de masque !)</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(scores_enc, 'Scores', `(${srcLen}, ${srcLen})`, 'encoder', srcTokens)}
+                        <div style="margin-left:20px;">
+                            ${createMask(srcLen, false)}
+                            <div style="color:#888;font-size:10px;margin-top:5px;text-align:center;">Tous visibles</div>
+                        </div>
+                    </div>
+
+                    <h4 style="color:#66bb6a;margin:15px 0 10px;">Attention & Output</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(attention_enc, 'Attn', `(${srcLen}, ${srcLen})`, 'encoder', srcTokens)}
+                        <span class="operator">× V →</span>
+                        ${createMatrix(mh_out_enc, 'Out', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                    </div>
+
+                    <div class="properties">
+                        <span class="property-badge">Bidirectionnel</span>
+                        <span class="property-badge">Pas de masque</span>
+                        <span class="property-badge info">Comme BERT</span>
+                    </div>
+                `
+            },
+            // 5: Encoder Add & Norm 1
+            {
+                title: 'Add & Norm (Encodeur 1)',
+                formula: 'LN(X + Attn)',
+                content: () => `
+                    <div class="calc-description">Connexion résiduelle + LayerNorm après l'attention.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(X_src, 'X_src', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(mh_out_enc, 'Attn', `(${srcLen}, ${embedDim})`, 'result', srcTokens)}
+                        <span class="operator">→ LN →</span>
+                        ${createMatrix(afterNorm1_enc, 'LN₁', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                    </div>
+                `
+            },
+            // 6: Encoder FFN
+            {
+                title: 'FFN (Encodeur)',
+                formula: 'GELU(xW₁+b₁)W₂+b₂',
+                content: () => `
+                    <div class="calc-description">Feed-Forward Network : expansion puis contraction.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm1_enc, 'LN₁', `(${srcLen}, 6)`, 'encoder', srcTokens)}
+                        <span class="operator">→ W₁ → GELU →</span>
+                        ${createMatrix(ffnGelu_enc, 'Hidden', `(${srcLen}, 12)`, 'result', srcTokens)}
+                    </div>
+                    <div class="matrix-section">
+                        <span class="operator">→ W₂ →</span>
+                        ${createMatrix(ffn2_enc, 'FFN out', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                    </div>
+                `
+            },
+            // 7: Encoder output
+            {
+                title: 'Sortie Encodeur',
+                formula: 'enc_out = LN(LN₁ + FFN)',
+                content: () => `
+                    <div class="calc-description">La sortie de l'encodeur sera utilisée par <strong>tous</strong> les blocs du décodeur via cross-attention.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(encoder_output, 'enc_out', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                    </div>
+                    <div class="info-box success">
+                        <h4>Représentations contextualisées</h4>
+                        <p>Chaque vecteur de sortie encode le token <em>dans son contexte</em>.</p>
+                        <ul style="margin-top:5px;">
+                            <li>"Le" : contexte de début de phrase, avant "chat"</li>
+                            <li>"chat" : animal, pas conversation (grâce à "Le")</li>
+                        </ul>
+                    </div>
+                    <div class="info-box info">
+                        <h4>Réutilisation efficace</h4>
+                        <p>L'encodeur ne s'exécute qu'<strong>une seule fois</strong> par séquence source.</p>
+                        <p style="margin-top:5px;">Pendant la génération, seul le décodeur tourne en boucle.</p>
+                    </div>
+                `
+            },
+            // 8: Decoder self-attention
+            {
+                title: 'Self-Attention Décodeur',
+                formula: 'Attn = softmax(QK^T/√d + mask) × V',
+                content: () => `
+                    <div class="calc-description">Le décodeur utilise une attention <strong class="highlight-pink">causale</strong> (masquée) pour sa self-attention.</div>
+
+                    <div class="matrix-section">
+                        ${createMatrix(Q_dec, 'Q', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                        ${createMatrix(K_dec, 'K', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                        ${createMatrix(V_dec, 'V', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                    </div>
+
+                    <h4 style="color:#e91e63;margin:15px 0 10px;">Scores + Masque Causal</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(scores_dec, 'Scores', `(${tgtLen}, ${tgtLen})`, 'decoder', tgtTokens)}
+                        <span class="operator">+ mask →</span>
+                        ${createMatrix(scores_dec_masked, 'Masked', `(${tgtLen}, ${tgtLen})`, 'mask', tgtTokens)}
+                        <div style="margin-left:15px;">
+                            ${createMask(tgtLen, true)}
+                            <div style="color:#888;font-size:10px;margin-top:5px;text-align:center;">Causal</div>
+                        </div>
+                    </div>
+
+                    <h4 style="color:#ffa726;margin:15px 0 10px;">Attention & Output</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(attention_dec, 'Attn', `(${tgtLen}, ${tgtLen})`, 'decoder', tgtTokens)}
+                        <span class="operator">× V →</span>
+                        ${createMatrix(mh_out_dec, 'Out', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                    </div>
+
+                    <div class="properties">
+                        <span class="property-badge pink">Masque causal</span>
+                        <span class="property-badge warning">Comme GPT</span>
+                    </div>
+
+                    <div class="info-box warning">
+                        <h4>Pourquoi masquer ?</h4>
+                        <p>Pour la génération auto-régressive : on ne peut pas "tricher" en regardant les tokens futurs !</p>
+                    </div>
+                `
+            },
+            // 9: Cross-attention
+            {
+                title: 'Cross-Attention',
+                formula: 'Q(dec) × K(enc)^T × V(enc)',
+                content: () => `
+                    <div class="calc-description">Le <strong class="highlight-purple">pont</strong> entre encodeur et décodeur. <strong>Q</strong> vient du décodeur, <strong>K</strong> et <strong>V</strong> de l'encodeur.</div>
+
+                    <div class="flow-diagram">
+                        <div class="flow-box decoder" style="padding:8px;">Q (décodeur)</div>
+                        <div class="flow-arrow">×</div>
+                        <div class="flow-box encoder" style="padding:8px;">K (encodeur)ᵀ</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="flow-box cross" style="padding:8px;">Scores</div>
+                    </div>
+
+                    <h4 style="color:#ba68c8;margin:15px 0 10px;">Q (décodeur) et K, V (encodeur)</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(Q_cross, 'Q', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                        ${createMatrix(K_cross, 'K', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                        ${createMatrix(V_cross, 'V', `(${srcLen}, ${embedDim})`, 'encoder', srcTokens)}
+                    </div>
+
+                    <h4 style="color:#ba68c8;margin:15px 0 10px;">Scores (tgt × src) - Pas de masque !</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(scores_cross, 'Scores', `(${tgtLen}, ${srcLen})`, 'cross', tgtTokens)}
+                        <div style="margin-left:20px;">
+                            ${createCrossAttentionMask(tgtLen, srcLen)}
+                            <div style="color:#888;font-size:10px;margin-top:5px;text-align:center;">Tout visible</div>
+                        </div>
+                    </div>
+                    <div style="color:#888;font-size:10px;margin-bottom:10px;">Lignes = tokens cible, Colonnes = tokens source</div>
+
+                    <h4 style="color:#ba68c8;margin:15px 0 10px;">Attention & Output</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(attention_cross, 'Attn', `(${tgtLen}, ${srcLen})`, 'cross', tgtTokens)}
+                        <span class="operator">× V →</span>
+                        ${createMatrix(mh_out_cross, 'Out', `(${tgtLen}, ${embedDim})`, 'cross', tgtTokens)}
+                    </div>
+
+                    <div class="properties">
+                        <span class="property-badge purple">Cross-Attention</span>
+                        <span class="property-badge">Pas de masque</span>
+                        <span class="property-badge info">Shape: (tgt, src)</span>
+                    </div>
+
+                    <div class="info-box purple">
+                        <h4>Interprétation</h4>
+                        <p>La cross-attention "aligne" les tokens source et cible :</p>
+                        <ul style="margin-top:5px;">
+                            <li>Pour générer "The", le modèle regarde "Le" (même position)</li>
+                            <li>Pour "cat", il regarde "chat"</li>
+                        </ul>
+                        <p style="margin-top:5px;">C'est l'apprentissage de cet alignement qui permet la traduction !</p>
+                    </div>
+                `
+            },
+            // 10: Decoder Add & Norm 2
+            {
+                title: 'Add & Norm (après Cross-Attn)',
+                formula: 'LN(self_attn_out + cross_attn)',
+                content: () => `
+                    <div class="calc-description">Intégration de l'information de la source via connexion résiduelle.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm1_dec, 'Self-Attn', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(mh_out_cross, 'Cross-Attn', `(${tgtLen}, ${embedDim})`, 'cross', tgtTokens)}
+                    </div>
+                    <div class="matrix-section">
+                        <span class="operator">→ LN →</span>
+                        ${createMatrix(afterNorm2_dec, 'LN₂', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                    </div>
+                `
+            },
+            // 11: Decoder FFN
+            {
+                title: 'FFN (Décodeur)',
+                formula: 'GELU(xW₁+b₁)W₂+b₂',
+                content: () => `
+                    <div class="calc-description">Feed-Forward après la cross-attention.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm2_dec, 'LN₂', `(${tgtLen}, 6)`, 'decoder', tgtTokens)}
+                        <span class="operator">→ W₁ → GELU →</span>
+                        ${createMatrix(ffnGelu_dec, 'Hidden', `(${tgtLen}, 12)`, 'result', tgtTokens)}
+                    </div>
+                    <div class="matrix-section">
+                        <span class="operator">→ W₂ →</span>
+                        ${createMatrix(ffn2_dec, 'FFN out', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                    </div>
+                `
+            },
+            // 12: Decoder output
+            {
+                title: 'Add & Norm Final (Décodeur)',
+                formula: 'LN(LN₂ + FFN)',
+                content: () => `
+                    <div class="calc-description">Sortie du bloc décodeur.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm2_dec, 'LN₂', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(ffn2_dec, 'FFN', `(${tgtLen}, ${embedDim})`, 'result', tgtTokens)}
+                        <span class="operator">→ LN →</span>
+                        ${createMatrix(afterNorm3_dec, 'Output', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                    </div>
+                `
+            },
+            // 13: Final LayerNorm
+            {
+                title: 'LayerNorm Final',
+                formula: 'LN(output)',
+                content: () => `
+                    <div class="calc-description">Normalisation avant projection vers vocabulaire.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(finalNorm, 'H', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                    </div>
+                `
+            },
+            // 14: LM Head
+            {
+                title: 'LM Head',
+                formula: 'logits = H × E^T',
+                content: () => `
+                    <div class="calc-description">Projection vers le vocabulaire cible.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(finalNorm, 'H', `(${tgtLen}, ${embedDim})`, 'decoder', tgtTokens)}
+                        <span class="operator">× Eᵀ →</span>
+                        ${createMatrix(logits, 'Logits', `(${tgtLen}, ${vocabSize})`, 'result', tgtTokens)}
+                    </div>
+                    <div class="info-box">
+                        <h4>Weight Tying</h4>
+                        <p>Comme GPT, on réutilise la matrice d'embedding transposée.</p>
+                    </div>
+                `
+            },
+            // 15: Output
+            {
+                title: 'Softmax & Génération',
+                formula: 'P = softmax(logits)',
+                content: () => `
+                    <div class="calc-description">Chaque position prédit le <strong>prochain</strong> token de la cible.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(probs, 'Probas', `(${tgtLen}, ${vocabSize})`, 'result', tgtTokens)}
+                    </div>
+
+                    <div class="info-box">
+                        <h4>Prédictions</h4>
+                        <ul>
+                            <li>Position 0 (<code>&lt;s&gt;</code>) → prédit "The"</li>
+                            <li>Position 1 (<code>The</code>) → prédit "cat"</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box purple">
+                        <h4>Génération (inférence)</h4>
+                        <ol>
+                            <li>Encoder la source une fois</li>
+                            <li>Commencer avec <code>&lt;s&gt;</code></li>
+                            <li>Générer token par token</li>
+                            <li>S'arrêter à <code>&lt;/s&gt;</code></li>
+                        </ol>
+                    </div>
+
+                    <h4 style="color:#26c6da;margin:20px 0 10px;">Comparaison des architectures</h4>
+                    <table class="comparison-table">
+                        <tr>
+                            <th></th>
+                            <th style="color:#66bb6a;">BERT</th>
+                            <th style="color:#ffa726;">GPT</th>
+                            <th style="color:#26c6da;">T5/BART</th>
+                        </tr>
+                        <tr>
+                            <td>Architecture</td>
+                            <td>Encodeur seul</td>
+                            <td>Décodeur seul</td>
+                            <td>Enc + Déc</td>
+                        </tr>
+                        <tr>
+                            <td>Self-Attention</td>
+                            <td>Bidirectionnelle</td>
+                            <td>Causale</td>
+                            <td>Les deux</td>
+                        </tr>
+                        <tr>
+                            <td>Cross-Attention</td>
+                            <td>Non</td>
+                            <td>Non</td>
+                            <td>Oui</td>
+                        </tr>
+                        <tr>
+                            <td>Usage principal</td>
+                            <td>Classification</td>
+                            <td>Génération</td>
+                            <td>Seq2Seq</td>
+                        </tr>
+                    </table>
+                `
+            }
+        ];
+
+        function showStep(index) {
+            currentStep = index;
+            document.querySelectorAll('.arch-block, .sub-block').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll(`[data-step="${index}"]`).forEach(b => b.classList.add('active'));
+
+            const step = steps[index];
+            document.getElementById('calc-panel').innerHTML = `
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="showStep(${index - 1})" ${index === 0 ? 'disabled' : ''}>← Précédent</button>
+                    <div class="step-counter">Étape <span class="num">${index + 1}</span> / ${steps.length}</div>
+                    <button class="nav-btn" onclick="showStep(${index + 1})" ${index === steps.length - 1 ? 'disabled' : ''}>Suivant →</button>
+                </div>
+                <div class="calc-title">
+                    <span>${step.title}</span>
+                    <span class="formula">${step.formula}</span>
+                </div>
+                ${step.content()}
+            `;
+        }
+
+        showStep(0);
+    </script>
+</body>
+</html>

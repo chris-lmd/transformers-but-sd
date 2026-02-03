@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloc Transformer - Structure & Calcul</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 15px;
+            color: #fff;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+            color: #4fc3f7;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .config-display {
+            text-align: center;
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 15px;
+        }
+
+        .config-display code {
+            color: #4fc3f7;
+            background: rgba(79, 195, 247, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 15px;
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1000px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Left Panel - Architecture */
+        .arch-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .arch-panel h2 {
+            color: #4fc3f7;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .arch-block {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid #444;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .arch-block:hover {
+            transform: scale(1.02);
+        }
+
+        .arch-block.active {
+            box-shadow: 0 0 15px currentColor;
+            transform: scale(1.02);
+        }
+
+        .arch-block.input { border-color: #4caf50; }
+        .arch-block.input.active { background: rgba(76, 175, 80, 0.2); }
+
+        .arch-block.embedding { border-color: #2196f3; }
+        .arch-block.embedding.active { background: rgba(33, 150, 243, 0.2); }
+
+        .arch-block.pe { border-color: #00bcd4; }
+        .arch-block.pe.active { background: rgba(0, 188, 212, 0.2); }
+
+        .arch-block.attention { border-color: #ff9800; }
+        .arch-block.attention.active { background: rgba(255, 152, 0, 0.2); }
+
+        .arch-block.norm { border-color: #607d8b; }
+        .arch-block.norm.active { background: rgba(96, 125, 139, 0.2); }
+
+        .arch-block.ffn { border-color: #66bb6a; }
+        .arch-block.ffn.active { background: rgba(102, 187, 106, 0.2); }
+
+        .arch-block.output { border-color: #e91e63; }
+        .arch-block.output.active { background: rgba(233, 30, 99, 0.2); }
+
+        .arch-block .title {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .arch-block .dims {
+            font-size: 10px;
+            color: #888;
+            font-family: monospace;
+        }
+
+        .arrow {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .plus-circle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .transformer-box {
+            border: 2px solid #ab47bc;
+            border-radius: 10px;
+            padding: 10px;
+            width: 100%;
+            background: rgba(171, 71, 188, 0.1);
+        }
+
+        .transformer-box-title {
+            text-align: center;
+            color: #ab47bc;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+
+        /* Right Panel - Calculations */
+        .calc-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .calc-title {
+            color: #4fc3f7;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .calc-title .formula {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            color: #ffa726;
+            font-size: 14px;
+        }
+
+        .calc-description {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .calc-description strong {
+            color: #fff;
+        }
+
+        .matrix-section {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .matrix-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .matrix-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .matrix-label .dims {
+            color: #666;
+            font-size: 10px;
+        }
+
+        .matrix {
+            display: grid;
+            gap: 2px;
+            background: rgba(0,0,0,0.3);
+            padding: 6px;
+            border-radius: 6px;
+            border: 2px solid #333;
+        }
+
+        .matrix.input { border-color: #4caf50; }
+        .matrix.result { border-color: #ff9800; }
+        .matrix.head1 { border-color: #ff9800; }
+        .matrix.head2 { border-color: #e91e63; }
+        .matrix.norm { border-color: #607d8b; }
+        .matrix.ffn { border-color: #66bb6a; }
+        .matrix.concat { border-color: #9c27b0; }
+
+        .matrix-cell {
+            width: 38px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-family: monospace;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+        }
+
+        .matrix-cell.negative { color: #ef5350; }
+        .matrix-cell.positive { color: #66bb6a; }
+        .matrix-cell.zero { color: #888; }
+        .matrix-cell.head1-col { background: rgba(255, 152, 0, 0.15); }
+        .matrix-cell.head2-col { background: rgba(233, 30, 99, 0.15); }
+
+        .operator {
+            font-size: 20px;
+            color: #666;
+            padding: 0 3px;
+        }
+
+        .matrix-with-labels {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .row-labels {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .row-label {
+            height: 22px;
+            display: flex;
+            align-items: center;
+            font-size: 9px;
+            color: #666;
+        }
+
+        .property-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(102, 187, 106, 0.2);
+            border: 1px solid #66bb6a;
+            border-radius: 15px;
+            font-size: 10px;
+            color: #66bb6a;
+            margin: 3px 3px 3px 0;
+        }
+
+        .property-badge.warning {
+            background: rgba(255, 152, 0, 0.2);
+            border-color: #ffa726;
+            color: #ffa726;
+        }
+
+        .property-badge.info {
+            background: rgba(79, 195, 247, 0.2);
+            border-color: #4fc3f7;
+            color: #4fc3f7;
+        }
+
+        .properties { margin: 8px 0; }
+
+        .info-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 12px 0;
+            border-left: 3px solid #4fc3f7;
+        }
+
+        .info-box.success { border-left-color: #66bb6a; }
+        .info-box.warning { border-left-color: #ffa726; }
+
+        .info-box h4 {
+            color: #4fc3f7;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .info-box.success h4 { color: #66bb6a; }
+        .info-box.warning h4 { color: #ffa726; }
+
+        .info-box p, .info-box li {
+            color: #aaa;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .info-box ul { margin-left: 15px; }
+
+        .info-box code {
+            background: rgba(255,255,255,0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: #4fc3f7;
+            font-family: monospace;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            border: 2px solid #4fc3f7;
+            background: transparent;
+            color: #4fc3f7;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        .nav-btn:hover:not(:disabled) { background: rgba(79, 195, 247, 0.2); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .row-sum {
+            width: 45px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: #66bb6a;
+            background: rgba(102, 187, 106, 0.1);
+            border-radius: 3px;
+            margin-left: 4px;
+        }
+
+        .parallel-heads {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .head-box {
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0,0,0,0.2);
+            flex: 1;
+            min-width: 280px;
+            max-width: 400px;
+        }
+
+        .head-box.head1 { border: 2px solid #ff9800; }
+        .head-box.head2 { border: 2px solid #e91e63; }
+
+        .head-box h5 {
+            margin-bottom: 12px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .head-box.head1 h5 { color: #ff9800; }
+        .head-box.head2 h5 { color: #e91e63; }
+
+        .head-content {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .head-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .head-step-label {
+            font-size: 10px;
+            color: #888;
+            width: 55px;
+        }
+
+        .col-header {
+            display: flex;
+            justify-content: center;
+            gap: 2px;
+            margin-bottom: 2px;
+        }
+
+        .col-label {
+            width: 38px;
+            text-align: center;
+            font-size: 8px;
+            padding: 2px;
+            border-radius: 2px;
+        }
+
+        .col-label.head1 { background: rgba(255, 152, 0, 0.3); color: #ff9800; }
+        .col-label.head2 { background: rgba(233, 30, 99, 0.3); color: #e91e63; }
+
+        .highlight-orange { color: #ff9800; }
+        .highlight-pink { color: #e91e63; }
+
+        .step-counter {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .step-counter .num {
+            color: #4fc3f7;
+            font-weight: bold;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bloc Transformer - Structure & Calcul</h1>
+    <p class="subtitle">Cliquez sur un composant ou naviguez avec les boutons</p>
+
+    <div class="config-display">
+        <code>seq_len=3</code> ("Le", "chat", "dort") |
+        <code>embed_dim=6</code> |
+        <code>num_heads=2</code> |
+        <code>d_k=3</code> |
+        <code>ffn_dim=12</code>
+    </div>
+
+    <div class="main-layout">
+        <!-- Left: Architecture -->
+        <div class="arch-panel">
+            <h2>Structure</h2>
+            <div class="architecture">
+                <div class="arch-block input" data-step="0" onclick="showStep(0)">
+                    <div class="title">Tokens</div>
+                    <div class="dims">(3,) → "Le", "chat", "dort"</div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="arch-block embedding" data-step="1" onclick="showStep(1)">
+                    <div class="title">Embedding</div>
+                    <div class="dims">(3,) → (3, 6)</div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="arch-block pe" data-step="2" onclick="showStep(2)">
+                    <div class="title">+ Positional Encoding</div>
+                    <div class="dims">(3, 6) + (3, 6) → X</div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="transformer-box">
+                    <div class="transformer-box-title">Bloc Transformer</div>
+
+                    <!-- Multi-Head Attention avec 3 sous-étapes -->
+                    <div style="border: 2px solid #ff9800; border-radius: 8px; padding: 8px; background: rgba(255,152,0,0.05);">
+                        <div class="arch-block attention" data-step="3" onclick="showStep(3)" style="margin-bottom: 4px;">
+                            <div class="title">Q, K, V + Split</div>
+                            <div class="dims">X → Q, K, V → têtes</div>
+                        </div>
+                        <div class="arch-block attention" data-step="4" onclick="showStep(4)" style="margin-bottom: 4px;">
+                            <div class="title">Attention (∥)</div>
+                            <div class="dims">2 têtes en parallèle</div>
+                        </div>
+                        <div class="arch-block attention" data-step="5" onclick="showStep(5)">
+                            <div class="title">Concat + W_O</div>
+                            <div class="dims">Têtes → MH Output</div>
+                        </div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+                        <div class="plus-circle">+</div>
+                        <div class="arch-block norm" data-step="6" onclick="showStep(6)" style="flex: 1;">
+                            <div class="title">Add & LayerNorm</div>
+                            <div class="dims">X + MH → LN₁</div>
+                        </div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div class="arch-block ffn" data-step="7" onclick="showStep(7)">
+                        <div class="title">Feed-Forward (MLP)</div>
+                        <div class="dims">6 → 12 → 6</div>
+                    </div>
+
+                    <div class="arrow">↓</div>
+
+                    <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+                        <div class="plus-circle">+</div>
+                        <div class="arch-block norm" data-step="8" onclick="showStep(8)" style="flex: 1;">
+                            <div class="title">Add & LayerNorm</div>
+                            <div class="dims">LN₁ + FFN → Output</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="arrow">↓</div>
+
+                <div class="arch-block output" data-step="9" onclick="showStep(9)">
+                    <div class="title">Sortie du bloc</div>
+                    <div class="dims">(3, 6) → bloc suivant ou LM Head</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Calculations -->
+        <div class="calc-panel" id="calc-panel"></div>
+    </div>
+
+    <script>
+        const tokens = ['Le', 'chat', 'dort'];
+        const numHeads = 2;
+        const embedDim = 6;
+        const dK = embedDim / numHeads;
+
+        // Token IDs (fake)
+        const tokenIds = [1, 4, 7];
+
+        // Embedding matrix (vocab_size=10, embed_dim=6)
+        const E = [];
+        for (let i = 0; i < 10; i++) {
+            E[i] = [];
+            for (let j = 0; j < 6; j++) {
+                E[i][j] = Math.sin(i * 3 + j * 2) * 0.5 + Math.cos(i + j * 4) * 0.3;
+            }
+        }
+
+        // Lookup embedding
+        const X_emb = tokenIds.map(id => E[id].slice());
+
+        // Positional Encoding (sinusoidal)
+        const PE = [];
+        for (let pos = 0; pos < 3; pos++) {
+            PE[pos] = [];
+            for (let i = 0; i < 6; i++) {
+                if (i % 2 === 0) {
+                    PE[pos][i] = Math.sin(pos / Math.pow(10000, i / 6));
+                } else {
+                    PE[pos][i] = Math.cos(pos / Math.pow(10000, (i - 1) / 6));
+                }
+            }
+        }
+
+        // X = Embedding + PE
+        const X = X_emb.map((row, i) => row.map((val, j) => val + PE[i][j]));
+
+        const W_Q = [
+            [ 0.3, -0.1,  0.2,  0.1, -0.2,  0.1],
+            [-0.2,  0.4,  0.1, -0.1,  0.3,  0.0],
+            [ 0.1,  0.2, -0.3,  0.2,  0.1, -0.2],
+            [ 0.0, -0.1,  0.3,  0.4, -0.1,  0.2],
+            [ 0.2,  0.1, -0.1,  0.0,  0.2,  0.3],
+            [-0.1,  0.3,  0.2, -0.2,  0.1,  0.1]
+        ];
+
+        const W_K = [
+            [ 0.2,  0.1, -0.2,  0.3,  0.0,  0.1],
+            [ 0.1, -0.3,  0.2,  0.1,  0.2, -0.1],
+            [-0.1,  0.2,  0.3, -0.1,  0.1,  0.2],
+            [ 0.3,  0.0, -0.1,  0.2, -0.2,  0.3],
+            [ 0.0,  0.2,  0.1,  0.1,  0.3, -0.1],
+            [ 0.2, -0.1,  0.0,  0.2,  0.1,  0.2]
+        ];
+
+        const W_V = [
+            [ 0.1,  0.2, -0.1,  0.2,  0.1,  0.0],
+            [ 0.2, -0.1,  0.3,  0.0,  0.2,  0.1],
+            [-0.1,  0.3,  0.1, -0.2,  0.0,  0.3],
+            [ 0.0,  0.1,  0.2,  0.3, -0.1,  0.2],
+            [ 0.3,  0.0, -0.2,  0.1,  0.2,  0.1],
+            [ 0.1,  0.2,  0.1,  0.1,  0.3, -0.1]
+        ];
+
+        const W_O = [
+            [ 0.2,  0.1,  0.0,  0.1, -0.1,  0.2],
+            [ 0.1, -0.2,  0.2,  0.0,  0.1,  0.1],
+            [ 0.0,  0.2,  0.1, -0.1,  0.2,  0.0],
+            [-0.1,  0.1,  0.2,  0.2,  0.0,  0.1],
+            [ 0.2,  0.0, -0.1,  0.1,  0.1,  0.2],
+            [ 0.1,  0.1,  0.1,  0.0,  0.2, -0.1]
+        ];
+
+        const W_ffn1 = [], b_ffn1 = [], W_ffn2 = [], b_ffn2 = [];
+        for (let i = 0; i < 6; i++) {
+            W_ffn1[i] = [];
+            for (let j = 0; j < 12; j++) W_ffn1[i][j] = Math.sin(i * 7 + j * 3) * 0.3;
+        }
+        for (let j = 0; j < 12; j++) b_ffn1[j] = Math.cos(j * 5) * 0.1;
+        for (let i = 0; i < 12; i++) {
+            W_ffn2[i] = [];
+            for (let j = 0; j < 6; j++) W_ffn2[i][j] = Math.sin(i * 5 + j * 7) * 0.25;
+        }
+        for (let j = 0; j < 6; j++) b_ffn2[j] = Math.cos(j * 3) * 0.05;
+
+        function matmul(A, B) {
+            const result = [];
+            for (let i = 0; i < A.length; i++) {
+                result[i] = [];
+                for (let j = 0; j < B[0].length; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < A[0].length; k++) sum += A[i][k] * B[k][j];
+                    result[i][j] = sum;
+                }
+            }
+            return result;
+        }
+
+        function transpose(A) { return A[0].map((_, i) => A.map(row => row[i])); }
+
+        function softmaxRows(A) {
+            return A.map(row => {
+                const max = Math.max(...row);
+                const exps = row.map(x => Math.exp(x - max));
+                const sum = exps.reduce((a, b) => a + b, 0);
+                return exps.map(e => e / sum);
+            });
+        }
+
+        function addMatrices(A, B) { return A.map((row, i) => row.map((val, j) => val + B[i][j])); }
+
+        function layerNorm(A) {
+            return A.map(row => {
+                const mean = row.reduce((a, b) => a + b, 0) / row.length;
+                const variance = row.reduce((a, b) => a + (b - mean) ** 2, 0) / row.length;
+                const std = Math.sqrt(variance + 1e-5);
+                return row.map(x => (x - mean) / std);
+            });
+        }
+
+        function relu(A) { return A.map(row => row.map(x => Math.max(0, x))); }
+        function linearWithBias(X, W, b) { return matmul(X, W).map(row => row.map((val, j) => val + b[j])); }
+        function splitHeads(M, idx) { return M.map(row => row.slice(idx * dK, (idx + 1) * dK)); }
+        function concatHeads(heads) { return heads[0].map((_, i) => heads.flatMap(h => h[i])); }
+
+        // Compute all steps
+        const Q_full = matmul(X, W_Q);
+        const K_full = matmul(X, W_K);
+        const V_full = matmul(X, W_V);
+
+        const Q1 = splitHeads(Q_full, 0), Q2 = splitHeads(Q_full, 1);
+        const K1 = splitHeads(K_full, 0), K2 = splitHeads(K_full, 1);
+        const V1 = splitHeads(V_full, 0), V2 = splitHeads(V_full, 1);
+
+        const scale = Math.sqrt(dK);
+        const scores1 = matmul(Q1, transpose(K1)).map(row => row.map(x => x / scale));
+        const scores2 = matmul(Q2, transpose(K2)).map(row => row.map(x => x / scale));
+        const att1 = softmaxRows(scores1), att2 = softmaxRows(scores2);
+        const head1_out = matmul(att1, V1), head2_out = matmul(att2, V2);
+
+        const concat = concatHeads([head1_out, head2_out]);
+        const multihead_out = matmul(concat, W_O);
+        const afterAdd1 = addMatrices(X, multihead_out);
+        const afterNorm1 = layerNorm(afterAdd1);
+
+        const ffn1 = linearWithBias(afterNorm1, W_ffn1, b_ffn1);
+        const ffnRelu = relu(ffn1);
+        const ffn2 = linearWithBias(ffnRelu, W_ffn2, b_ffn2);
+        const afterAdd2 = addMatrices(afterNorm1, ffn2);
+        const afterNorm2 = layerNorm(afterAdd2);
+
+        let currentStep = 0;
+
+        function fmt(n) { const f = n.toFixed(2); return f === '-0.00' ? '0.00' : f; }
+        function cellClass(n) { return Math.abs(n) < 0.005 ? 'zero' : n < 0 ? 'negative' : 'positive'; }
+
+        function createMatrix(data, label, dims, type = '', rowLabels = null, showRowSums = false, showSplit = false) {
+            const rows = data.length, cols = data[0].length;
+            let html = `<div class="matrix-container">`;
+            html += `<div class="matrix-label">${label} <span class="dims">${dims}</span></div>`;
+
+            if (showSplit && cols === 6) {
+                html += `<div class="col-header">`;
+                for (let j = 0; j < 3; j++) html += `<div class="col-label head1">${j}</div>`;
+                for (let j = 3; j < 6; j++) html += `<div class="col-label head2">${j}</div>`;
+                html += `</div>`;
+            }
+
+            html += `<div class="matrix-with-labels">`;
+            if (rowLabels) {
+                html += `<div class="row-labels">`;
+                rowLabels.forEach(l => html += `<div class="row-label">${l}</div>`);
+                html += `</div>`;
+            }
+
+            html += `<div class="matrix ${type}" style="grid-template-columns: repeat(${cols}, 38px);">`;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const val = data[i][j];
+                    let extraClass = '';
+                    if (showSplit && cols === 6) extraClass = j < 3 ? ' head1-col' : ' head2-col';
+                    html += `<div class="matrix-cell ${cellClass(val)}${extraClass}">${fmt(val)}</div>`;
+                }
+            }
+            html += `</div>`;
+
+            if (showRowSums) {
+                html += `<div class="row-labels">`;
+                for (let i = 0; i < rows; i++) {
+                    const sum = data[i].reduce((a, b) => a + b, 0);
+                    html += `<div class="row-sum">Σ=${fmt(sum)}</div>`;
+                }
+                html += `</div>`;
+            }
+            html += `</div></div>`;
+            return html;
+        }
+
+        function stats(data) {
+            let min = Infinity, max = -Infinity;
+            data.forEach(row => row.forEach(v => { if (v < min) min = v; if (v > max) max = v; }));
+            return { min, max };
+        }
+
+        const steps = [
+            // Step 0: Tokens
+            {
+                title: 'Tokens d\'entrée',
+                formula: 'token_ids ∈ ℕ',
+                content: () => `
+                    <div class="calc-description">
+                        Les mots sont convertis en <strong>indices</strong> dans le vocabulaire.
+                    </div>
+                    <div class="matrix-section">
+                        <div class="matrix-container">
+                            <div class="matrix-label">Tokens</div>
+                            <div style="display: flex; gap: 10px;">
+                                ${tokens.map((t, i) => `
+                                    <div style="text-align: center; padding: 10px; background: rgba(76,175,80,0.2); border: 2px solid #4caf50; border-radius: 8px;">
+                                        <div style="color: #4caf50; font-weight: bold;">"${t}"</div>
+                                        <div style="color: #888; font-size: 11px;">id=${tokenIds[i]}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-box">
+                        <h4>Tokenization</h4>
+                        <p>En pratique : BPE, WordPiece, SentencePiece</p>
+                        <p>Ici : vocabulaire simplifié de 10 mots</p>
+                    </div>
+                `
+            },
+
+            // Step 1: Embedding
+            {
+                title: 'Embedding Lookup',
+                formula: 'X_emb = E[token_ids]',
+                content: () => `
+                    <div class="calc-description">
+                        Chaque token id <strong>sélectionne une ligne</strong> dans la matrice d'embedding E.
+                    </div>
+                    <div class="matrix-section">
+                        <div class="matrix-container">
+                            <div class="matrix-label">E <span class="dims">(10, 6)</span></div>
+                            <div style="font-size: 11px; color: #888;">[matrice apprise]</div>
+                        </div>
+                        <span class="operator">[${tokenIds.join(', ')}]</span>
+                        <span class="operator">=</span>
+                        ${createMatrix(X_emb, 'X_emb', '(3, 6)', 'input', tokens)}
+                    </div>
+                    <div class="info-box success">
+                        <h4>Lookup = pas de calcul</h4>
+                        <p>On récupère simplement les lignes 1, 4, 7 de la matrice E.</p>
+                        <p>Paramètres : <code>vocab_size × embed_dim = 10 × 6 = 60</code></p>
+                    </div>
+                `
+            },
+
+            // Step 2: Positional Encoding
+            {
+                title: 'Positional Encoding',
+                formula: 'X = X_emb + PE',
+                content: () => `
+                    <div class="calc-description">
+                        On ajoute l'<strong>information de position</strong> (sinusoïdes ou appris).
+                    </div>
+                    <div class="matrix-section">
+                        ${createMatrix(X_emb, 'X_emb', '(3, 6)', 'input', tokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(PE, 'PE', '(3, 6)', 'result', ['pos0', 'pos1', 'pos2'])}
+                    </div>
+                    <div class="matrix-section">
+                        <span class="operator">=</span>
+                        ${createMatrix(X, 'X', '(3, 6)', 'input', tokens)}
+                    </div>
+                    <div class="info-box">
+                        <h4>Pourquoi PE ?</h4>
+                        <p>L'attention n'a pas de notion d'ordre. Sans PE, "le chat mange" = "mange chat le".</p>
+                        <p>PE permet de distinguer la position de chaque token.</p>
+                    </div>
+                `
+            },
+
+            // Step 3: Q, K, V + Split
+            {
+                title: 'Projections Q, K, V + Split',
+                formula: 'Q = X×W_Q, K = X×W_K, V = X×W_V',
+                content: () => `
+                    <div class="calc-description">
+                        Chaque token est projeté en <strong>Query</strong>, <strong>Key</strong> et <strong>Value</strong>.
+                        Les colonnes colorées montrent le <strong>split</strong> en 2 têtes.
+                    </div>
+
+                    <h4 style="color: #ff9800; margin: 20px 0 10px; font-size: 14px;">Query (Q) = X × W_Q</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(X, 'X', '(3, 6)', 'input', tokens)}
+                        <span class="operator">×</span>
+                        <div class="matrix-container">
+                            <div class="matrix-label">W_Q <span class="dims">(6, 6)</span></div>
+                        </div>
+                        <span class="operator">=</span>
+                        ${createMatrix(Q_full, 'Q', '(3, 6)', 'result', tokens, false, true)}
+                    </div>
+
+                    <h4 style="color: #ff9800; margin: 20px 0 10px; font-size: 14px;">Key (K) = X × W_K</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(K_full, 'K', '(3, 6)', 'result', tokens, false, true)}
+                    </div>
+
+                    <h4 style="color: #ff9800; margin: 20px 0 10px; font-size: 14px;">Value (V) = X × W_V</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(V_full, 'V', '(3, 6)', 'result', tokens, false, true)}
+                    </div>
+
+                    <div class="info-box success">
+                        <h4>Split = découper les colonnes</h4>
+                        <p><span class="highlight-orange">Colonnes 0-2</span> → Tête 1 (d_k = 3)</p>
+                        <p><span class="highlight-pink">Colonnes 3-5</span> → Tête 2 (d_k = 3)</p>
+                        <p>Pas de calcul, juste réorganisation.</p>
+                    </div>
+
+                    <div class="properties">
+                        <span class="property-badge info">3 × 36 = 108 params (W_Q, W_K, W_V)</span>
+                    </div>
+                `
+            },
+
+            // Step 4: Multi-Head Attention (parallel)
+            {
+                title: 'Attention par tête (∥)',
+                formula: 'Head_i = softmax(Q_i × K_i^T / √d_k) × V_i',
+                content: () => `
+                    <div class="calc-description">
+                        Chaque tête calcule son attention <strong>en parallèle</strong>. Division par √d_k pour stabiliser.
+                    </div>
+
+                    <div class="parallel-heads">
+                        <div class="head-box head1">
+                            <h5>Tête 1 (colonnes 0-2)</h5>
+                            <div class="head-content">
+                                <div class="head-step">
+                                    <span class="head-step-label">Scores:</span>
+                                    ${createMatrix(scores1, 'Q₁×K₁ᵀ/√3', '(3,3)', 'head1', tokens)}
+                                </div>
+                                <div class="head-step">
+                                    <span class="head-step-label">Attention:</span>
+                                    ${createMatrix(att1, 'softmax', '(3,3)', 'head1', tokens, true)}
+                                </div>
+                                <div class="head-step">
+                                    <span class="head-step-label">Output:</span>
+                                    ${createMatrix(head1_out, 'Att₁ × V₁', '(3,3)', 'head1', tokens)}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="head-box head2">
+                            <h5>Tête 2 (colonnes 3-5)</h5>
+                            <div class="head-content">
+                                <div class="head-step">
+                                    <span class="head-step-label">Scores:</span>
+                                    ${createMatrix(scores2, 'Q₂×K₂ᵀ/√3', '(3,3)', 'head2', tokens)}
+                                </div>
+                                <div class="head-step">
+                                    <span class="head-step-label">Attention:</span>
+                                    ${createMatrix(att2, 'softmax', '(3,3)', 'head2', tokens, true)}
+                                </div>
+                                <div class="head-step">
+                                    <span class="head-step-label">Output:</span>
+                                    ${createMatrix(head2_out, 'Att₂ × V₂', '(3,3)', 'head2', tokens)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="properties">
+                        <span class="property-badge">Attention ∈ [0,1]</span>
+                        <span class="property-badge">Σ ligne = 1</span>
+                        <span class="property-badge warning">Output ∈ ℝ</span>
+                    </div>
+
+                    <div class="info-box">
+                        <h4>Pourquoi √d_k ?</h4>
+                        <p>Sans division, les produits scalaires sont grands → softmax donne des valeurs extrêmes (≈0 ou ≈1) → gradients faibles.</p>
+                    </div>
+                `
+            },
+
+            // Step 5: Concat + W_O
+            {
+                title: 'Concat + Projection W_O',
+                formula: 'MH = Concat(Head₁, Head₂) × W_O',
+                content: () => `
+                    <div class="calc-description">
+                        On <strong>concatène</strong> les sorties des têtes, puis W_O <strong>mélange</strong> leurs informations.
+                    </div>
+
+                    <h4 style="color: #ff9800; margin: 20px 0 10px; font-size: 14px;">Concaténation</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(head1_out, 'Head₁', '(3, 3)', 'head1', tokens)}
+                        <span class="operator">|</span>
+                        ${createMatrix(head2_out, 'Head₂', '(3, 3)', 'head2', tokens)}
+                        <span class="operator">=</span>
+                        ${createMatrix(concat, 'Concat', '(3, 6)', 'concat', tokens, false, true)}
+                    </div>
+
+                    <h4 style="color: #ff9800; margin: 20px 0 10px; font-size: 14px;">Projection W_O</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(concat, 'Concat', '(3, 6)', 'concat', tokens)}
+                        <span class="operator">×</span>
+                        <div class="matrix-container">
+                            <div class="matrix-label">W_O <span class="dims">(6, 6)</span></div>
+                        </div>
+                        <span class="operator">=</span>
+                        ${createMatrix(multihead_out, 'MH Output', '(3, 6)', 'result', tokens)}
+                    </div>
+
+                    <div class="info-box success">
+                        <h4>Rôle de W_O</h4>
+                        <p><strong>Mélange</strong> les informations des têtes. Sans W_O, elles resteraient isolées.</p>
+                        <p>Chaque dimension de sortie combine Tête 1 + Tête 2.</p>
+                    </div>
+
+                    <div class="properties">
+                        <span class="property-badge info">36 params (W_O)</span>
+                        <span class="property-badge info">Total MH: 144 params</span>
+                    </div>
+                `
+            },
+
+            // Step 6: Add + LayerNorm 1
+            {
+                title: 'Add & LayerNorm (1er)',
+                formula: 'LN₁ = LayerNorm(X + MH)',
+                content: () => `
+                    <div class="calc-description">
+                        <strong>Connexion résiduelle</strong> (on garde X) puis <strong>normalisation</strong>.
+                    </div>
+
+                    <div class="matrix-section">
+                        ${createMatrix(X, 'X', '(3, 6)', 'input', tokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(multihead_out, 'MH', '(3, 6)', 'result', tokens)}
+                    </div>
+
+                    <div class="matrix-section">
+                        <span class="operator">→ LayerNorm →</span>
+                        ${createMatrix(afterNorm1, 'LN₁', '(3, 6)', 'norm', tokens)}
+                    </div>
+
+                    <div class="properties">
+                        <span class="property-badge">μ ≈ 0 par ligne</span>
+                        <span class="property-badge">σ ≈ 1 par ligne</span>
+                    </div>
+
+                    <div class="info-box">
+                        <h4>Pourquoi le résiduel ?</h4>
+                        <ul>
+                            <li><strong>Gradient</strong> : chemin direct (+1) évite le vanishing</li>
+                            <li><strong>Optionnel</strong> : si MH ≈ 0, on garde X intact</li>
+                        </ul>
+                    </div>
+                `
+            },
+
+            // Step 7: FFN
+            {
+                title: 'Feed-Forward Network',
+                formula: 'FFN = ReLU(LN₁ × W₁ + b₁) × W₂ + b₂',
+                content: () => {
+                    const numZeros = ffnRelu.flat().filter(x => x === 0).length;
+                    return `
+                    <div class="calc-description">
+                        MLP classique : <strong>expansion</strong> (6→12) + ReLU + <strong>contraction</strong> (12→6).
+                    </div>
+
+                    <h4 style="color: #66bb6a; margin: 15px 0 8px; font-size: 13px;">Linear 1 + ReLU (6 → 12)</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(ffnRelu, 'ReLU(LN₁×W₁+b₁)', '(3, 12)', 'ffn', tokens)}
+                    </div>
+                    <div class="properties">
+                        <span class="property-badge">Après ReLU: ≥ 0</span>
+                        <span class="property-badge info">${numZeros}/36 valeurs = 0</span>
+                    </div>
+
+                    <h4 style="color: #66bb6a; margin: 15px 0 8px; font-size: 13px;">Linear 2 (12 → 6)</h4>
+                    <div class="matrix-section">
+                        ${createMatrix(ffn2, 'FFN Output', '(3, 6)', 'ffn', tokens)}
+                    </div>
+
+                    <div class="info-box warning">
+                        <h4>Paramètres FFN</h4>
+                        <p>Linear1: 6×12 + 12 = 84</p>
+                        <p>Linear2: 12×6 + 6 = 78</p>
+                        <p><strong>Total: 162 paramètres</strong></p>
+                    </div>
+                `;
+                }
+            },
+
+            // Step 8: Add + LayerNorm 2
+            {
+                title: 'Add & LayerNorm (2nd)',
+                formula: 'Output = LayerNorm(LN₁ + FFN)',
+                content: () => `
+                    <div class="calc-description">
+                        Deuxième résiduel + normalisation → <strong>sortie du bloc</strong>.
+                    </div>
+
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm1, 'LN₁', '(3, 6)', 'norm', tokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(ffn2, 'FFN', '(3, 6)', 'ffn', tokens)}
+                    </div>
+
+                    <div class="matrix-section">
+                        <span class="operator">→ LayerNorm →</span>
+                        ${createMatrix(afterNorm2, 'Output', '(3, 6)', 'input', tokens)}
+                    </div>
+
+                    <div class="info-box success">
+                        <h4>Même dimension !</h4>
+                        <p>Input (3, 6) → Output (3, 6)</p>
+                        <p>On peut <strong>empiler les blocs</strong> ou passer au LM Head.</p>
+                    </div>
+                `
+            },
+
+            // Step 9: Output
+            {
+                title: 'Sortie du bloc',
+                formula: 'Output ∈ ℝ^(3 × 6)',
+                content: () => `
+                    <div class="calc-description">
+                        La sortie peut aller vers un <strong>autre bloc</strong> ou vers la <strong>tête de sortie</strong>.
+                    </div>
+
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm2, 'Output', '(3, 6)', 'input', tokens)}
+                    </div>
+
+                    <div class="info-box">
+                        <h4>Récapitulatif du bloc</h4>
+                        <table style="width: 100%; font-size: 11px; color: #aaa;">
+                            <tr><td>Embedding</td><td>60 params</td></tr>
+                            <tr><td>Multi-Head (Q,K,V,O)</td><td>144 params</td></tr>
+                            <tr><td>LayerNorm ×2</td><td>24 params</td></tr>
+                            <tr><td>FFN</td><td>162 params</td></tr>
+                            <tr style="border-top: 1px solid #444;"><td><strong>Total bloc</strong></td><td><strong>390 params</strong></td></tr>
+                        </table>
+                    </div>
+
+                    <div class="info-box success">
+                        <h4>Suite possible</h4>
+                        <ul>
+                            <li><strong>GPT</strong> : LM Head → softmax → prédiction token</li>
+                            <li><strong>BERT</strong> : [CLS] → classifieur</li>
+                            <li><strong>Empiler</strong> : Output → bloc suivant</li>
+                        </ul>
+                    </div>
+                `
+            }
+        ];
+
+        function showStep(index) {
+            currentStep = index;
+
+            // Update architecture highlighting
+            document.querySelectorAll('.arch-block').forEach(b => b.classList.remove('active'));
+            const activeBlock = document.querySelector(`.arch-block[data-step="${index}"]`);
+            if (activeBlock) activeBlock.classList.add('active');
+
+            const step = steps[index];
+            document.getElementById('calc-panel').innerHTML = `
+                <div class="step-counter">Étape <span class="num">${index + 1}</span> / ${steps.length}</div>
+                <div class="calc-title">
+                    <span>${step.title}</span>
+                    <span class="formula">${step.formula}</span>
+                </div>
+                ${step.content()}
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="showStep(${index - 1})" ${index === 0 ? 'disabled' : ''}>← Précédent</button>
+                    <button class="nav-btn" onclick="showStep(${index + 1})" ${index === steps.length - 1 ? 'disabled' : ''}>Suivant →</button>
+                </div>
+            `;
+        }
+
+        showStep(0);
+    </script>
+</body>
+</html>

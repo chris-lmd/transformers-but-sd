@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture BERT - Structure & Calcul</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 15px;
+            color: #fff;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 5px;
+            color: #42a5f5;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .config-display {
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .config-display code {
+            color: #42a5f5;
+            background: rgba(66, 165, 245, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 20px;
+            max-width: 1500px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 1100px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Left Panel - Architecture */
+        .arch-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .arch-panel h2 {
+            color: #42a5f5;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .architecture {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .arch-block {
+            width: 220px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .arch-block:hover {
+            transform: scale(1.03);
+            z-index: 10;
+        }
+
+        .arch-block.active {
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .output-block {
+            background: linear-gradient(135deg, #66bb6a, #43a047);
+            border: 2px solid #66bb6a;
+        }
+
+        .output-block.mlm {
+            background: linear-gradient(135deg, #ff7043, #e64a19);
+            border: 2px solid #ff7043;
+        }
+
+        .cls-head {
+            background: linear-gradient(135deg, #ab47bc, #7b1fa2);
+            border: 2px solid #ab47bc;
+        }
+
+        .layer-norm {
+            background: linear-gradient(135deg, #607d8b, #455a64);
+            border: 2px solid #607d8b;
+            width: 180px;
+        }
+
+        .encoder-stack {
+            background: linear-gradient(135deg, #42a5f5, #1e88e5);
+            border: 2px solid #42a5f5;
+            width: auto;
+            padding: 12px;
+        }
+
+        .encoder-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .encoder-arrow {
+            color: #90caf9;
+            font-size: 18px;
+        }
+
+        .encoder-ellipsis {
+            color: #90caf9;
+            font-size: 12px;
+            text-align: center;
+            padding: 0 5px;
+        }
+
+        .encoder-block {
+            background: rgba(0,0,0,0.3);
+            border: 2px solid #90caf9;
+            border-radius: 8px;
+            padding: 6px;
+        }
+
+        .encoder-block-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #90caf9;
+            font-size: 11px;
+        }
+
+        .sub-block {
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            padding: 5px;
+            margin: 3px 0;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .sub-block:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.02);
+        }
+
+        .sub-block.active {
+            background: rgba(255,255,255,0.3);
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+            transform: scale(1.03);
+        }
+
+        .sub-block.attention { border-left: 3px solid #4fc3f7; }
+        .sub-block.attention.active { box-shadow: 0 0 12px #4fc3f7; }
+        .sub-block.attention.bidir { border-left: 3px solid #66bb6a; }
+        .sub-block.attention.bidir.active { box-shadow: 0 0 12px #66bb6a; }
+        .sub-block.ffn { border-left: 3px solid #ffb74d; }
+        .sub-block.ffn.active { box-shadow: 0 0 12px #ffb74d; }
+        .sub-block.norm { border-left: 3px solid #607d8b; }
+        .sub-block.norm.active { box-shadow: 0 0 12px #607d8b; }
+
+        .sub-block .dimensions {
+            font-size: 9px;
+            color: rgba(255,255,255,0.5);
+        }
+
+        .embedding-block {
+            background: linear-gradient(135deg, #5c6bc0, #3949ab);
+            border: 2px solid #5c6bc0;
+        }
+
+        .input-block {
+            background: linear-gradient(135deg, #26a69a, #00897b);
+            border: 2px solid #26a69a;
+        }
+
+        .arrow {
+            width: 2px;
+            height: 15px;
+            background: #666;
+            position: relative;
+        }
+
+        .arrow::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -4px;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 6px solid #666;
+        }
+
+        .plus-circle {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #333;
+            border: 2px solid #888;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        .dim-label {
+            font-size: 9px;
+            color: #666;
+            text-align: center;
+            padding: 2px 6px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+        }
+
+        .dimensions {
+            font-size: 10px;
+            color: rgba(255,255,255,0.6);
+            margin-top: 3px;
+        }
+
+        /* Right Panel - Calculations */
+        .calc-panel {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .calc-title {
+            color: #42a5f5;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .calc-title .formula {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            color: #4fc3f7;
+            font-size: 14px;
+        }
+
+        .calc-description {
+            color: #aaa;
+            font-size: 13px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .calc-description strong { color: #fff; }
+
+        .matrix-section {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .matrix-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .matrix-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .matrix-label .dims {
+            color: #666;
+            font-size: 10px;
+        }
+
+        .matrix {
+            display: grid;
+            gap: 2px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px;
+            border-radius: 6px;
+            border: 2px solid #333;
+        }
+
+        .matrix.input { border-color: #26a69a; }
+        .matrix.result { border-color: #42a5f5; }
+        .matrix.bidir { border-color: #66bb6a; }
+
+        .matrix-cell {
+            width: 38px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-family: monospace;
+            background: rgba(255,255,255,0.05);
+            border-radius: 2px;
+        }
+
+        .matrix-cell.negative { color: #ef5350; }
+        .matrix-cell.positive { color: #66bb6a; }
+        .matrix-cell.zero { color: #888; }
+        .matrix-cell.special { background: rgba(66, 165, 245, 0.3); color: #42a5f5; }
+
+        .operator {
+            font-size: 18px;
+            color: #666;
+            padding: 0 3px;
+        }
+
+        .matrix-with-labels {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .row-labels {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .row-label {
+            height: 22px;
+            display: flex;
+            align-items: center;
+            font-size: 9px;
+            color: #666;
+        }
+
+        .property-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: rgba(102, 187, 106, 0.2);
+            border: 1px solid #66bb6a;
+            border-radius: 15px;
+            font-size: 10px;
+            color: #66bb6a;
+            margin: 3px 3px 3px 0;
+        }
+
+        .property-badge.warning {
+            background: rgba(255, 152, 0, 0.2);
+            border-color: #ffa726;
+            color: #ffa726;
+        }
+
+        .property-badge.info {
+            background: rgba(79, 195, 247, 0.2);
+            border-color: #4fc3f7;
+            color: #4fc3f7;
+        }
+
+        .property-badge.bert {
+            background: rgba(66, 165, 245, 0.2);
+            border-color: #42a5f5;
+            color: #42a5f5;
+        }
+
+        .properties { margin: 8px 0; }
+
+        .info-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 12px 0;
+            border-left: 3px solid #42a5f5;
+        }
+
+        .info-box.success { border-left-color: #66bb6a; }
+        .info-box.warning { border-left-color: #ff7043; }
+        .info-box.info { border-left-color: #4fc3f7; }
+
+        .info-box h4 {
+            color: #42a5f5;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .info-box.success h4 { color: #66bb6a; }
+        .info-box.warning h4 { color: #ff7043; }
+        .info-box.info h4 { color: #4fc3f7; }
+
+        .info-box p, .info-box li {
+            color: #aaa;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .info-box ul { margin-left: 15px; }
+
+        .info-box code {
+            background: rgba(255,255,255,0.1);
+            padding: 1px 4px;
+            border-radius: 3px;
+            color: #4fc3f7;
+            font-family: monospace;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border: 2px solid #42a5f5;
+            background: transparent;
+            color: #42a5f5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        .nav-btn:hover:not(:disabled) { background: rgba(66, 165, 245, 0.2); }
+        .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .step-counter {
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+
+        .step-counter .num {
+            color: #42a5f5;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* Special tokens */
+        .token-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .token-box {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .token-box.cls {
+            background: rgba(171, 71, 188, 0.3);
+            border: 2px solid #ab47bc;
+            color: #ce93d8;
+        }
+
+        .token-box.sep {
+            background: rgba(255, 112, 67, 0.3);
+            border: 2px solid #ff7043;
+            color: #ffab91;
+        }
+
+        .token-box.mask {
+            background: rgba(66, 165, 245, 0.3);
+            border: 2px solid #42a5f5;
+            color: #90caf9;
+        }
+
+        .token-box.normal {
+            background: rgba(38, 166, 154, 0.3);
+            border: 2px solid #26a69a;
+            color: #80cbc4;
+        }
+
+        /* Bidirectional attention grid */
+        .attn-grid {
+            display: inline-grid;
+            gap: 2px;
+            background: rgba(0,0,0,0.3);
+            padding: 5px;
+            border-radius: 6px;
+        }
+
+        .attn-cell {
+            width: 28px;
+            height: 28px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .attn-cell.see { background: rgba(102, 187, 106, 0.5); color: #fff; }
+
+        .highlight { color: #42a5f5; font-weight: bold; }
+        .highlight-green { color: #66bb6a; font-weight: bold; }
+        .highlight-orange { color: #ff7043; font-weight: bold; }
+        .highlight-purple { color: #ab47bc; font-weight: bold; }
+
+        /* Modal popup */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #42a5f5;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h3 {
+            color: #42a5f5;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .modal th, .modal td {
+            padding: 8px 10px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .modal th {
+            color: #42a5f5;
+            font-weight: bold;
+        }
+
+        .modal td {
+            color: #ccc;
+        }
+
+        .modal td:first-child {
+            text-align: left;
+            color: #888;
+        }
+
+        .modal td.ours {
+            color: #4fc3f7;
+            font-weight: bold;
+        }
+
+        .modal .close-btn {
+            display: block;
+            margin: 15px auto 0;
+            padding: 8px 20px;
+            background: #42a5f5;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .modal .close-btn:hover {
+            background: #64b5f6;
+        }
+
+        .compare-btn {
+            background: rgba(66, 165, 245, 0.2);
+            border: 1px solid #42a5f5;
+            color: #42a5f5;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.3s;
+        }
+
+        .compare-btn:hover {
+            background: rgba(66, 165, 245, 0.4);
+        }
+
+        /* Comparison table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 11px;
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 8px;
+            border: 1px solid #333;
+            text-align: center;
+        }
+
+        .comparison-table th {
+            background: rgba(66, 165, 245, 0.2);
+            color: #42a5f5;
+        }
+
+        .comparison-table td.bert {
+            background: rgba(66, 165, 245, 0.1);
+            color: #90caf9;
+        }
+
+        .comparison-table td.gpt {
+            background: rgba(255, 152, 0, 0.1);
+            color: #ffb74d;
+        }
+    </style>
+</head>
+<body>
+    <h1>Architecture BERT - Structure & Calcul</h1>
+    <p class="subtitle">Encodeur bidirectionnel pour la compréhension du langage</p>
+
+    <div class="config-display">
+        <code>vocab=12</code> |
+        <code>embed=6</code> |
+        <code>heads=2</code> |
+        <code>layers=1</code> |
+        <code>seq="[CLS] Le chat [MASK] [SEP]"</code>
+        <button class="compare-btn" onclick="showModal()">📊 BERT réels</button>
+    </div>
+
+    <!-- Modal dimensions réelles -->
+    <div class="modal-overlay" id="modal" onclick="hideModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3>📊 Dimensions des vrais BERT</h3>
+            <table>
+                <tr>
+                    <th>Paramètre</th>
+                    <th>Nous</th>
+                    <th>BERT Base</th>
+                    <th>BERT Large</th>
+                    <th>RoBERTa</th>
+                </tr>
+                <tr>
+                    <td>vocab</td>
+                    <td class="ours">12</td>
+                    <td>30 522</td>
+                    <td>30 522</td>
+                    <td>50 265</td>
+                </tr>
+                <tr>
+                    <td>embed (d_model)</td>
+                    <td class="ours">6</td>
+                    <td>768</td>
+                    <td>1 024</td>
+                    <td>768</td>
+                </tr>
+                <tr>
+                    <td>heads</td>
+                    <td class="ours">2</td>
+                    <td>12</td>
+                    <td>16</td>
+                    <td>12</td>
+                </tr>
+                <tr>
+                    <td>d_k (embed/heads)</td>
+                    <td class="ours">3</td>
+                    <td>64</td>
+                    <td>64</td>
+                    <td>64</td>
+                </tr>
+                <tr>
+                    <td>layers (encodeurs)</td>
+                    <td class="ours">1</td>
+                    <td>12</td>
+                    <td>24</td>
+                    <td>12</td>
+                </tr>
+                <tr>
+                    <td>FFN hidden</td>
+                    <td class="ours">12</td>
+                    <td>3 072</td>
+                    <td>4 096</td>
+                    <td>3 072</td>
+                </tr>
+                <tr>
+                    <td>context (seq max)</td>
+                    <td class="ours">5</td>
+                    <td>512</td>
+                    <td>512</td>
+                    <td>512</td>
+                </tr>
+                <tr>
+                    <td>params total</td>
+                    <td class="ours">~600</td>
+                    <td>110 M</td>
+                    <td>340 M</td>
+                    <td>125 M</td>
+                </tr>
+            </table>
+            <button class="close-btn" onclick="hideModal()">Fermer</button>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <!-- Left: Architecture (bottom to top) -->
+        <div class="arch-panel">
+            <h2>Architecture BERT</h2>
+            <div class="architecture">
+                <!-- Output (top) -->
+                <div style="display: flex; gap: 10px;">
+                    <div class="arch-block output-block" data-step="11" onclick="showStep(11)" style="width:100px;font-size:10px;">
+                        [CLS] → Class
+                        <div class="dimensions">classification</div>
+                    </div>
+                    <div class="arch-block output-block mlm" data-step="11" onclick="showStep(11)" style="width:100px;font-size:10px;">
+                        [MASK] → Token
+                        <div class="dimensions">MLM</div>
+                    </div>
+                </div>
+                <div class="dim-label">↑ tâches downstream</div>
+
+                <div class="arrow"></div>
+
+                <div class="arch-block cls-head" data-step="10" onclick="showStep(10)">
+                    Têtes de sortie
+                    <div class="dimensions">classification / MLM</div>
+                </div>
+                <div class="dim-label">↑ (seq, vocab) ou (1, classes)</div>
+
+                <div class="arrow"></div>
+
+                <!-- Encoder Blocks -->
+                <div class="arch-block encoder-stack" data-step="3" onclick="showStep(3)">
+                    <div class="encoder-row">
+                        <!-- Encodeur 1 (détaillé) -->
+                        <div class="encoder-block" style="min-width:120px;">
+                            <div class="encoder-block-title">Encodeur 1</div>
+                            <div class="sub-block norm" data-step="9" onclick="event.stopPropagation(); showStep(9)">Add & Norm</div>
+                            <div class="sub-block ffn" data-step="8" onclick="event.stopPropagation(); showStep(8)">FFN</div>
+                            <div class="sub-block norm" data-step="7" onclick="event.stopPropagation(); showStep(7)">Add & Norm</div>
+                            <div class="sub-block attention bidir" data-step="6" onclick="event.stopPropagation(); showStep(6)">Concat+W<sub>O</sub></div>
+                            <div class="sub-block attention bidir" data-step="5" onclick="event.stopPropagation(); showStep(5)">Attn (∥)</div>
+                            <div class="sub-block attention bidir" data-step="4" onclick="event.stopPropagation(); showStep(4)">
+                                <strong style="color:#66bb6a;">Pas de masque!</strong>
+                            </div>
+                            <div class="sub-block attention bidir" data-step="3" onclick="event.stopPropagation(); showStep(3)">Q, K, V</div>
+                        </div>
+
+                        <div class="encoder-arrow">→</div>
+                        <div class="encoder-ellipsis">...</div>
+                        <div class="encoder-arrow">→</div>
+
+                        <!-- Encodeur N -->
+                        <div class="encoder-block" style="min-width:110px;">
+                            <div class="encoder-block-title">Encodeur N</div>
+                            <div class="sub-block norm" data-step="9" onclick="event.stopPropagation(); showStep(9)">Add & Norm</div>
+                            <div class="sub-block ffn" data-step="8" onclick="event.stopPropagation(); showStep(8)">FFN</div>
+                            <div class="sub-block norm" data-step="7" onclick="event.stopPropagation(); showStep(7)">Add & Norm</div>
+                            <div class="sub-block attention bidir" data-step="6" onclick="event.stopPropagation(); showStep(6)">Concat+W<sub>O</sub></div>
+                            <div class="sub-block attention bidir" data-step="5" onclick="event.stopPropagation(); showStep(5)">Attn (∥)</div>
+                            <div class="sub-block attention bidir" data-step="4" onclick="event.stopPropagation(); showStep(4)">
+                                <strong style="color:#66bb6a;">Bidirect.</strong>
+                            </div>
+                            <div class="sub-block attention bidir" data-step="3" onclick="event.stopPropagation(); showStep(3)">Q, K, V</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dim-label">↑ (seq, embed) = (5, 6)</div>
+
+                <div class="arrow"></div>
+
+                <div class="plus-circle">+</div>
+                <div class="dim-label" style="font-size:8px;">Token + Position + Segment</div>
+
+                <!-- Embeddings -->
+                <div style="display: flex; gap: 6px;">
+                    <div class="arch-block embedding-block" style="width: 70px; font-size: 10px;" data-step="1" onclick="showStep(1)">
+                        Token
+                        <div class="dimensions">E[id]</div>
+                    </div>
+                    <div class="arch-block embedding-block" style="width: 70px; font-size: 10px; background: linear-gradient(135deg, #7e57c2, #5e35b1); border-color: #7e57c2;" data-step="2" onclick="showStep(2)">
+                        Position
+                        <div class="dimensions">PE[pos]</div>
+                    </div>
+                    <div class="arch-block embedding-block" style="width: 70px; font-size: 10px; background: linear-gradient(135deg, #26c6da, #00acc1); border-color: #26c6da;" data-step="2" onclick="showStep(2)">
+                        Segment
+                        <div class="dimensions">SE[0/1]</div>
+                    </div>
+                </div>
+
+                <div class="arrow"></div>
+
+                <!-- Input (bottom) -->
+                <div class="arch-block input-block" data-step="0" onclick="showStep(0)">
+                    Tokens d'entrée
+                    <div class="dimensions">[CLS] Le chat [MASK] [SEP]</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Calculations -->
+        <div class="calc-panel" id="calc-panel"></div>
+    </div>
+
+    <script>
+        // Modal functions
+        function showModal() {
+            document.getElementById('modal').classList.add('show');
+        }
+        function hideModal() {
+            document.getElementById('modal').classList.remove('show');
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') hideModal();
+        });
+
+        const tokens = ['[CLS]', 'Le', 'chat', '[MASK]', '[SEP]'];
+        const tokenIds = [0, 1, 2, 3, 4];
+        const vocab = ['[CLS]', 'Le', 'chat', '[MASK]', '[SEP]', 'mange', 'la', 'souris', 'dort', 'bien', '[PAD]', '[UNK]'];
+        const seqLen = 5;
+        const embedDim = 6;
+        const vocabSize = 12;
+
+        // Embedding matrix
+        const E = [];
+        for (let i = 0; i < vocabSize; i++) {
+            E[i] = [];
+            for (let j = 0; j < embedDim; j++) {
+                E[i][j] = Math.sin(i * 3 + j * 2) * 0.5 + Math.cos(i + j * 4) * 0.3;
+            }
+        }
+
+        const X_tok = tokenIds.map(id => E[id].slice());
+
+        // Positional Encoding (learned in BERT, but we show sinusoidal for simplicity)
+        const PE = [];
+        for (let pos = 0; pos < seqLen; pos++) {
+            PE[pos] = [];
+            for (let i = 0; i < embedDim; i++) {
+                PE[pos][i] = i % 2 === 0
+                    ? Math.sin(pos / Math.pow(10000, i / embedDim))
+                    : Math.cos(pos / Math.pow(10000, (i-1) / embedDim));
+            }
+        }
+
+        // Segment Embedding (all 0 for single sentence)
+        const SE = [];
+        for (let pos = 0; pos < seqLen; pos++) {
+            SE[pos] = [];
+            for (let i = 0; i < embedDim; i++) {
+                SE[pos][i] = 0.1 * Math.sin(i * 2); // Segment A
+            }
+        }
+
+        const X = X_tok.map((row, i) => row.map((v, j) => v + PE[i][j] + SE[i][j]));
+
+        // Weights
+        const W_Q = [], W_K = [], W_V = [], W_O = [];
+        for (let i = 0; i < embedDim; i++) {
+            W_Q[i] = []; W_K[i] = []; W_V[i] = []; W_O[i] = [];
+            for (let j = 0; j < embedDim; j++) {
+                W_Q[i][j] = Math.sin(i * 2 + j * 3) * 0.3;
+                W_K[i][j] = Math.cos(i * 3 + j * 2) * 0.3;
+                W_V[i][j] = Math.sin(i + j * 4) * 0.3;
+                W_O[i][j] = Math.cos(i * 4 + j) * 0.25;
+            }
+        }
+
+        const W_ffn1 = [], b_ffn1 = [], W_ffn2 = [], b_ffn2 = [];
+        for (let i = 0; i < 6; i++) {
+            W_ffn1[i] = [];
+            for (let j = 0; j < 12; j++) W_ffn1[i][j] = Math.sin(i * 7 + j * 3) * 0.3;
+        }
+        for (let j = 0; j < 12; j++) b_ffn1[j] = Math.cos(j * 5) * 0.1;
+        for (let i = 0; i < 12; i++) {
+            W_ffn2[i] = [];
+            for (let j = 0; j < 6; j++) W_ffn2[i][j] = Math.sin(i * 5 + j * 7) * 0.25;
+        }
+        for (let j = 0; j < 6; j++) b_ffn2[j] = Math.cos(j * 3) * 0.05;
+
+        // Math functions
+        function matmul(A, B) {
+            return A.map((row, i) => B[0].map((_, j) => row.reduce((s, v, k) => s + v * B[k][j], 0)));
+        }
+        function transpose(A) { return A[0].map((_, i) => A.map(row => row[i])); }
+        function softmaxRows(A) {
+            return A.map(row => {
+                const max = Math.max(...row);
+                const exps = row.map(x => Math.exp(x - max));
+                const sum = exps.reduce((a, b) => a + b, 0);
+                return exps.map(e => e / sum);
+            });
+        }
+        function addMatrices(A, B) { return A.map((row, i) => row.map((v, j) => v + B[i][j])); }
+        function layerNorm(A) {
+            return A.map(row => {
+                const mean = row.reduce((a, b) => a + b, 0) / row.length;
+                const variance = row.reduce((a, b) => a + (b - mean) ** 2, 0) / row.length;
+                const std = Math.sqrt(variance + 1e-5);
+                return row.map(x => (x - mean) / std);
+            });
+        }
+        function gelu(x) { return 0.5 * x * (1 + Math.tanh(Math.sqrt(2/Math.PI) * (x + 0.044715 * x * x * x))); }
+        function geluMatrix(A) { return A.map(row => row.map(x => gelu(x))); }
+        function linearBias(X, W, b) { return matmul(X, W).map(row => row.map((v, j) => v + b[j])); }
+
+        // Compute (NO MASK - bidirectional!)
+        const numHeads = 2;
+        const headDim = embedDim / numHeads;
+        const Q = matmul(X, W_Q), K = matmul(X, W_K), V = matmul(X, W_V);
+
+        function splitHeads(M) {
+            return Array.from({length: numHeads}, (_, h) =>
+                M.map(row => row.slice(h * headDim, (h + 1) * headDim))
+            );
+        }
+        const Q_heads = splitHeads(Q);
+        const K_heads = splitHeads(K);
+        const V_heads = splitHeads(V);
+
+        const scale = Math.sqrt(headDim);
+        const scores_per_head = Q_heads.map((Qh, h) =>
+            matmul(Qh, transpose(K_heads[h])).map(row => row.map(v => v / scale))
+        );
+        // NO CAUSAL MASK - all positions can attend to all positions!
+        const attention_per_head = scores_per_head.map(s => softmaxRows(s));
+        const attn_out_per_head = attention_per_head.map((a, h) => matmul(a, V_heads[h]));
+
+        const concat_heads = attn_out_per_head[0].map((_, i) =>
+            attn_out_per_head.flatMap(head => head[i])
+        );
+        const mh_out = matmul(concat_heads, W_O);
+
+        const afterAdd1 = addMatrices(X, mh_out);
+        const afterNorm1 = layerNorm(afterAdd1);
+        const ffn1 = linearBias(afterNorm1, W_ffn1, b_ffn1);
+        const ffnGelu = geluMatrix(ffn1);
+        const ffn2 = linearBias(ffnGelu, W_ffn2, b_ffn2);
+        const afterAdd2 = addMatrices(afterNorm1, ffn2);
+        const afterNorm2 = layerNorm(afterAdd2);
+
+        // For display
+        const scores_raw = scores_per_head[0];
+        const attention = attention_per_head[0];
+
+        let currentStep = 0;
+
+        function fmt(n) {
+            const f = n.toFixed(2);
+            return f === '-0.00' ? '0.00' : f;
+        }
+        function cellClass(n) {
+            return Math.abs(n) < 0.005 ? 'zero' : n < 0 ? 'negative' : 'positive';
+        }
+
+        function createMatrix(data, label, dims, type = '', rowLabels = null) {
+            const rows = data.length, cols = data[0].length;
+            let html = `<div class="matrix-container">`;
+            html += `<div class="matrix-label">${label} <span class="dims">${dims}</span></div>`;
+            html += `<div class="matrix-with-labels">`;
+            if (rowLabels) {
+                html += `<div class="row-labels">`;
+                rowLabels.forEach(l => html += `<div class="row-label">${l}</div>`);
+                html += `</div>`;
+            }
+            html += `<div class="matrix ${type}" style="grid-template-columns: repeat(${cols}, 38px);">`;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    html += `<div class="matrix-cell ${cellClass(data[i][j])}">${fmt(data[i][j])}</div>`;
+                }
+            }
+            html += `</div></div></div>`;
+            return html;
+        }
+
+        function createBidirGrid(size, labels) {
+            // Grid with row/column labels
+            let html = `<div style="display:inline-block;">`;
+            // Header row with column labels
+            html += `<div style="display:flex;gap:2px;margin-left:50px;margin-bottom:2px;">`;
+            for (let j = 0; j < size; j++) {
+                html += `<div style="width:28px;text-align:center;font-size:8px;color:#888;">${labels[j]}</div>`;
+            }
+            html += `</div>`;
+            // Grid rows with row labels
+            for (let i = 0; i < size; i++) {
+                html += `<div style="display:flex;align-items:center;gap:2px;">`;
+                html += `<div style="width:48px;text-align:right;padding-right:4px;font-size:8px;color:#888;">${labels[i]}</div>`;
+                for (let j = 0; j < size; j++) {
+                    html += `<div class="attn-cell see" style="width:28px;height:28px;">✓</div>`;
+                }
+                html += `</div>`;
+            }
+            html += `</div>`;
+            return html;
+        }
+
+        const steps = [
+            {
+                title: 'Tokens d\'entrée',
+                formula: 'ids ∈ ℕ',
+                content: () => `
+                    <div class="calc-description">Entrée de BERT : séquence avec <strong>tokens spéciaux</strong>.</div>
+                    <div class="token-display">
+                        <div class="token-box cls">[CLS]<div style="font-size:9px;color:#888;">id=0</div></div>
+                        <div class="token-box normal">Le<div style="font-size:9px;color:#888;">id=1</div></div>
+                        <div class="token-box normal">chat<div style="font-size:9px;color:#888;">id=2</div></div>
+                        <div class="token-box mask">[MASK]<div style="font-size:9px;color:#888;">id=3</div></div>
+                        <div class="token-box sep">[SEP]<div style="font-size:9px;color:#888;">id=4</div></div>
+                    </div>
+                    <div class="info-box">
+                        <h4>Tokens spéciaux BERT</h4>
+                        <ul>
+                            <li><strong class="highlight-purple">[CLS]</strong> : Classification token - sa sortie représente toute la phrase</li>
+                            <li><strong class="highlight">[MASK]</strong> : Token masqué - BERT doit le prédire (MLM)</li>
+                            <li><strong class="highlight-orange">[SEP]</strong> : Séparateur entre phrases (pour NSP)</li>
+                            <li><strong>[PAD]</strong> : Padding pour aligner les séquences</li>
+                        </ul>
+                    </div>
+                    <table class="comparison-table">
+                        <tr><th></th><th>BERT</th><th>GPT</th></tr>
+                        <tr><td>Début</td><td class="bert">[CLS]</td><td class="gpt">-</td></tr>
+                        <tr><td>Fin</td><td class="bert">[SEP]</td><td class="gpt">&lt;eos&gt;</td></tr>
+                        <tr><td>Token [MASK]</td><td class="bert">Oui (MLM)</td><td class="gpt">Non</td></tr>
+                    </table>
+                `
+            },
+            {
+                title: 'Token Embedding',
+                formula: 'E_tok = E[ids]',
+                content: () => `
+                    <div class="calc-description">Chaque token → <strong>vecteur dense</strong> de dimension ${embedDim}.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(X_tok, 'E_tok', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                    </div>
+                    <div class="info-box info">
+                        <h4>Vocabulaire BERT</h4>
+                        <p>BERT utilise <strong>WordPiece</strong> : les mots rares sont découpés en sous-mots.</p>
+                        <p style="margin-top:5px;">Ex: "jouerait" → "joue" + "##rait"</p>
+                    </div>
+                `
+            },
+            {
+                title: 'Embeddings combinés',
+                formula: 'X = E_tok + E_pos + E_seg',
+                content: () => `
+                    <div class="calc-description">BERT combine <strong>3 embeddings</strong> : Token + Position + Segment.</div>
+                    <div class="matrix-section" style="flex-wrap:wrap;gap:8px;">
+                        ${createMatrix(X_tok, 'Token', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(PE, 'Position', `(${seqLen}, ${embedDim})`, 'result')}
+                        <span class="operator">+</span>
+                        ${createMatrix(SE, 'Segment', `(${seqLen}, ${embedDim})`, 'result')}
+                    </div>
+                    <div class="matrix-section">
+                        <span class="operator">=</span>
+                        ${createMatrix(X, 'X', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                    </div>
+                    <div class="info-box">
+                        <h4>Segment Embedding</h4>
+                        <p>Indique à quelle phrase appartient chaque token (pour les tâches à 2 phrases).</p>
+                        <p style="margin-top:5px;"><code>Phrase A → 0</code>, <code>Phrase B → 1</code></p>
+                        <div style="margin-top:8px;padding:8px;background:rgba(0,0,0,0.2);border-radius:6px;font-size:10px;">
+                            <strong>Exemple NSP :</strong><br>
+                            <span style="color:#4fc3f7;">[CLS]</span> Le chat dort <span style="color:#ff7043;">[SEP]</span> Il rêve <span style="color:#ff7043;">[SEP]</span><br>
+                            <span style="color:#888;">Seg:</span> <span style="color:#26c6da;">0 0 0 0</span> <span style="color:#26c6da;">0</span> <span style="color:#ab47bc;">1 1</span> <span style="color:#ab47bc;">1</span>
+                        </div>
+                    </div>
+                    <div class="info-box info">
+                        <h4>Position Embedding</h4>
+                        <p>Contrairement au Transformer original (sinusoïdal), BERT utilise des positions <strong>apprises</strong>.</p>
+                    </div>
+                `
+            },
+            {
+                title: 'Q, K, V + Split en têtes',
+                formula: 'Q,K,V = XW → split(h)',
+                content: () => `
+                    <div class="calc-description">Projection puis <strong>split en ${numHeads} têtes</strong>. Identique à GPT.</div>
+                    <div class="matrix-section" style="flex-wrap:wrap;gap:10px;">
+                        ${createMatrix(Q, 'Q', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                        ${createMatrix(K, 'K', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                        ${createMatrix(V, 'V', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                    </div>
+                    <h4 style="color:#42a5f5;margin:15px 0 10px;">Split en ${numHeads} têtes (d_k = ${headDim})</h4>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+                        <div style="background:rgba(79,195,247,0.1);padding:10px;border-radius:8px;border:1px solid #4fc3f7;">
+                            <div style="color:#4fc3f7;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 1</div>
+                            <div class="matrix-section" style="gap:8px;">
+                                ${createMatrix(Q_heads[0], 'Q₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                                ${createMatrix(K_heads[0], 'K₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                                ${createMatrix(V_heads[0], 'V₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                            </div>
+                        </div>
+                        <div style="background:rgba(156,39,176,0.1);padding:10px;border-radius:8px;border:1px solid #9c27b0;">
+                            <div style="color:#9c27b0;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 2</div>
+                            <div class="matrix-section" style="gap:8px;">
+                                ${createMatrix(Q_heads[1], 'Q₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                                ${createMatrix(K_heads[1], 'K₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                                ${createMatrix(V_heads[1], 'V₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                title: 'Scores - PAS DE MASQUE !',
+                formula: 'S = Q × K^T / √d_k',
+                content: () => `
+                    <div class="calc-description">Calcul des scores d'attention. <strong class="highlight-green">Aucun masque</strong> : attention bidirectionnelle !</div>
+
+                    <div class="info-box success">
+                        <h4>LA différence clé avec GPT</h4>
+                        <p>BERT n'applique <strong>aucun masque causal</strong>. Chaque token peut voir <strong>tous</strong> les autres tokens, y compris ceux qui viennent après !</p>
+                    </div>
+
+                    <h4 style="color:#42a5f5;margin:15px 0 10px;">Matrice d'attention (tous voient tous)</h4>
+                    <div class="matrix-section">
+                        ${createBidirGrid(seqLen, tokens)}
+                        <div style="margin-left:15px;color:#aaa;font-size:11px;">
+                            <p><span class="highlight-green">✓</span> Tous les tokens</p>
+                            <p>peuvent voir tous</p>
+                            <p>les autres tokens</p>
+                        </div>
+                    </div>
+
+                    <div class="matrix-section">
+                        ${createMatrix(scores_raw, 'Scores', `(${seqLen}, ${seqLen})`, 'bidir', tokens)}
+                    </div>
+
+                    <table class="comparison-table">
+                        <tr><th></th><th>BERT</th><th>GPT</th></tr>
+                        <tr><td>Masque</td><td class="bert">Aucun</td><td class="gpt">Causal (-∞)</td></tr>
+                        <tr><td>Direction</td><td class="bert">Bidirectionnel</td><td class="gpt">Gauche → Droite</td></tr>
+                        <tr><td>Contexte</td><td class="bert">Passé + Futur</td><td class="gpt">Passé seulement</td></tr>
+                    </table>
+                `
+            },
+            {
+                title: 'Attention (∥) : Softmax × V',
+                formula: 'A = softmax(S) × V',
+                content: () => `
+                    <div class="calc-description">Softmax puis multiplication par V. <strong>Chaque position agrège info de TOUTES les autres.</strong></div>
+                    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+                        <div style="background:rgba(79,195,247,0.1);padding:10px;border-radius:8px;border:1px solid #4fc3f7;">
+                            <div style="color:#4fc3f7;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 1</div>
+                            <div class="matrix-section">
+                                ${createMatrix(attention_per_head[0], 'A₁', `(${seqLen}, ${seqLen})`, 'bidir', tokens)}
+                                <span class="operator">× V₁ →</span>
+                                ${createMatrix(attn_out_per_head[0], 'Out₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                            </div>
+                        </div>
+                        <div style="background:rgba(156,39,176,0.1);padding:10px;border-radius:8px;border:1px solid #9c27b0;">
+                            <div style="color:#9c27b0;font-size:11px;margin-bottom:8px;font-weight:bold;">Tête 2</div>
+                            <div class="matrix-section">
+                                ${createMatrix(attention_per_head[1], 'A₂', `(${seqLen}, ${seqLen})`, 'bidir', tokens)}
+                                <span class="operator">× V₂ →</span>
+                                ${createMatrix(attn_out_per_head[1], 'Out₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="properties" style="margin-top:10px;">
+                        <span class="property-badge">Σ ligne = 1</span>
+                        <span class="property-badge info">∥ en parallèle</span>
+                        <span class="property-badge" style="background:rgba(102,187,106,0.2);border-color:#66bb6a;color:#66bb6a;">Bidirectionnel</span>
+                    </div>
+                    <div class="info-box success">
+                        <h4>Pourquoi bidirectionnel est puissant</h4>
+                        <p>Pour comprendre "[MASK]" dans "Le chat [MASK] la souris", BERT peut utiliser :</p>
+                        <ul>
+                            <li>Le contexte <strong>avant</strong> : "Le chat"</li>
+                            <li>Le contexte <strong>après</strong> : "la souris"</li>
+                        </ul>
+                        <p style="margin-top:5px;">→ BERT comprend que [MASK] = "mange" grâce aux deux côtés !</p>
+                    </div>
+                `
+            },
+            {
+                title: 'Concat + W_O',
+                formula: 'O = Concat(heads) × W_O',
+                content: () => `
+                    <div class="calc-description">Concaténation des têtes puis projection. Identique à GPT.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(attn_out_per_head[0], 'Out₁', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                        <span class="operator" style="font-size:14px;">∥</span>
+                        ${createMatrix(attn_out_per_head[1], 'Out₂', `(${seqLen}, ${headDim})`, 'result', tokens)}
+                        <span class="operator">=</span>
+                        ${createMatrix(concat_heads, 'Concat', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                    </div>
+                    <div class="matrix-section">
+                        <span class="operator">× W_O →</span>
+                        ${createMatrix(mh_out, 'MH_Out', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                    </div>
+                `
+            },
+            {
+                title: 'Add & LayerNorm (1)',
+                formula: 'LN(X + Attn)',
+                content: () => `
+                    <div class="calc-description">Connexion résiduelle + normalisation.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(X, 'X', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(mh_out, 'Attn', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                        <span class="operator">→ LN →</span>
+                        ${createMatrix(afterNorm1, 'LN₁', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                    </div>
+                    <div class="info-box info">
+                        <h4>BERT vs GPT : même structure !</h4>
+                        <p>Les blocs encodeur et décodeur ont la <strong>même architecture interne</strong>. La seule différence : le masque d'attention.</p>
+                    </div>
+                `
+            },
+            {
+                title: 'FFN',
+                formula: 'GELU(xW₁+b₁)W₂+b₂',
+                content: () => `
+                    <div class="calc-description">MLP avec activation <strong>GELU</strong> (pas ReLU comme GPT original).</div>
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm1, 'LN₁', `(${seqLen}, 6)`, 'input', tokens)}
+                        <span class="operator">→ W₁ → GELU →</span>
+                        ${createMatrix(ffnGelu, 'Hidden', `(${seqLen}, 12)`, 'result', tokens)}
+                    </div>
+                    <div class="matrix-section">
+                        <span class="operator">→ W₂ →</span>
+                        ${createMatrix(ffn2, 'FFN out', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                    </div>
+                    <div class="info-box">
+                        <h4>GELU vs ReLU</h4>
+                        <p>BERT utilise <strong>GELU</strong> (Gaussian Error Linear Unit), plus "lisse" que ReLU.</p>
+                        <p style="margin-top:5px;"><code>GELU(x) ≈ x × σ(1.702x)</code></p>
+                    </div>
+                `
+            },
+            {
+                title: 'Add & LayerNorm (2)',
+                formula: 'LN(LN₁ + FFN)',
+                content: () => `
+                    <div class="calc-description">Sortie du bloc encodeur.</div>
+                    <div class="matrix-section">
+                        ${createMatrix(afterNorm1, 'LN₁', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                        <span class="operator">+</span>
+                        ${createMatrix(ffn2, 'FFN', `(${seqLen}, ${embedDim})`, 'result', tokens)}
+                        <span class="operator">→ LN →</span>
+                        ${createMatrix(afterNorm2, 'Output', `(${seqLen}, ${embedDim})`, 'input', tokens)}
+                    </div>
+                `
+            },
+            {
+                title: 'Pooling & Têtes de sortie',
+                formula: 'h_[CLS] ou h_[MASK]',
+                content: () => `
+                    <div class="calc-description">On extrait les représentations utiles selon la tâche.</div>
+
+                    <h4 style="color:#ab47bc;margin:15px 0 10px;">Pour la classification : [CLS]</h4>
+                    <div class="matrix-section">
+                        ${createMatrix([afterNorm2[0]], 'h_[CLS]', `(1, ${embedDim})`, 'result', ['[CLS]'])}
+                        <span class="operator">→ W_cls →</span>
+                        <div style="padding:10px;background:rgba(171,71,188,0.2);border:2px solid #ab47bc;border-radius:8px;">
+                            <div style="color:#ce93d8;font-size:12px;">Logits classes</div>
+                            <div style="color:#888;font-size:10px;">(1, n_classes)</div>
+                        </div>
+                    </div>
+
+                    <h4 style="color:#42a5f5;margin:15px 0 10px;">Pour MLM : positions [MASK]</h4>
+                    <div class="matrix-section">
+                        ${createMatrix([afterNorm2[3]], 'h_[MASK]', `(1, ${embedDim})`, 'result', ['[MASK]'])}
+                        <span class="operator">→ W_mlm →</span>
+                        <div style="padding:10px;background:rgba(66,165,245,0.2);border:2px solid #42a5f5;border-radius:8px;">
+                            <div style="color:#90caf9;font-size:12px;">Logits vocab</div>
+                            <div style="color:#888;font-size:10px;">(1, vocab_size)</div>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <h4>Pourquoi [CLS] représente la phrase ?</h4>
+                        <p>Grâce à l'attention bidirectionnelle, [CLS] a pu "voir" tous les tokens. Sa représentation finale agrège l'info de toute la séquence.</p>
+                    </div>
+                `
+            },
+            {
+                title: 'Tâches de pré-entraînement',
+                formula: 'MLM + NSP',
+                content: () => `
+                    <div class="calc-description">BERT est pré-entraîné sur <strong>2 tâches</strong> non supervisées.</div>
+
+                    <div class="info-box" style="border-left-color:#42a5f5;">
+                        <h4>1. Masked Language Model (MLM)</h4>
+                        <p>On masque 15% des tokens aléatoirement. BERT doit les prédire.</p>
+                        <p style="margin-top:5px;">Entrée : "Le chat <strong>[MASK]</strong> la souris"</p>
+                        <p>Sortie attendue : "<strong>mange</strong>"</p>
+                        <p style="margin-top:8px;color:#666;">Sur les 15% masqués :</p>
+                        <ul>
+                            <li>80% → [MASK]</li>
+                            <li>10% → token aléatoire</li>
+                            <li>10% → token original</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-box" style="border-left-color:#ff7043;">
+                        <h4>2. Next Sentence Prediction (NSP)</h4>
+                        <p>BERT reçoit 2 phrases. Il prédit si B suit vraiment A.</p>
+                        <p style="margin-top:5px;">✓ "Le chat dort." [SEP] "Il rêve de souris." → <strong>IsNext</strong></p>
+                        <p>✗ "Le chat dort." [SEP] "Paris est grand." → <strong>NotNext</strong></p>
+                        <p style="margin-top:8px;color:#888;font-size:10px;">Note : RoBERTa a supprimé NSP, jugé peu utile.</p>
+                    </div>
+
+                    <table class="comparison-table">
+                        <tr><th>Aspect</th><th>BERT (MLM)</th><th>GPT (CLM)</th></tr>
+                        <tr><td>Objectif</td><td class="bert">Prédire [MASK]</td><td class="gpt">Prédire suivant</td></tr>
+                        <tr><td>Contexte</td><td class="bert">Bidirectionnel</td><td class="gpt">Gauche seulement</td></tr>
+                        <tr><td>Génération</td><td class="bert">Difficile</td><td class="gpt">Naturelle</td></tr>
+                        <tr><td>Compréhension</td><td class="bert">Excellente</td><td class="gpt">Bonne</td></tr>
+                    </table>
+
+                    <div class="info-box info">
+                        <h4>Et après ? Le Fine-tuning</h4>
+                        <p>Une fois pré-entraîné, BERT est <strong>adapté</strong> à une tâche spécifique :</p>
+                        <ul>
+                            <li><strong>Classification</strong> : on ajoute une couche sur [CLS] (sentiment, spam...)</li>
+                            <li><strong>NER</strong> : une couche sur chaque token (entités nommées)</li>
+                            <li><strong>QA</strong> : prédire positions début/fin de la réponse</li>
+                        </ul>
+                        <p style="margin-top:8px;">On entraîne sur peu de données labelisées → les poids pré-entraînés sont un excellent point de départ.</p>
+                    </div>
+                `
+            }
+        ];
+
+        function showStep(index) {
+            currentStep = index;
+            document.querySelectorAll('.arch-block, .sub-block').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll(`[data-step="${index}"]`).forEach(b => b.classList.add('active'));
+
+            const step = steps[index];
+            document.getElementById('calc-panel').innerHTML = `
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="showStep(${index - 1})" ${index === 0 ? 'disabled' : ''}>← Précédent</button>
+                    <div class="step-counter">Étape <span class="num">${index + 1}</span> / ${steps.length}</div>
+                    <button class="nav-btn" onclick="showStep(${index + 1})" ${index === steps.length - 1 ? 'disabled' : ''}>Suivant →</button>
+                </div>
+                <div class="calc-title">
+                    <span>${step.title}</span>
+                    <span class="formula">${step.formula}</span>
+                </div>
+                ${step.content()}
+            `;
+        }
+
+        showStep(0);
+    </script>
+</body>
+</html>
